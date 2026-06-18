@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Diagnostic Tool</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #667eea;
+        }
+        .section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .status {
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: 500;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 5px;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 13px;
+        }
+        .code {
+            font-family: 'Courier New', monospace;
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+        }
+        .test-button {
+            background: #28a745;
+        }
+        .test-button:hover {
+            background: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Live Diagnostic Tool</h1>
+        <p class="subtitle">Testing auth, profiles, and database operations on production</p>
+
+        <div id="output"></div>
+
+        <div class="section">
+            <h3>Actions</h3>
+            <button onclick="runDiagnostics()">🔄 Run Full Diagnostics</button>
+            <button onclick="testListingCreation()" class="test-button">🧪 Test Listing Creation</button>
+            <button onclick="testDesireCreation()" class="test-button">🧪 Test Desire Creation</button>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://bfqvzxczmvfteqbhgyvx.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmcXZ6eGN6bXZmdGVxYmhneXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjgwNDY5MTAsImV4cCI6MjA0MzYyMjkxMH0.I6XGl43oLGvVFiSxkrjqOaP-PfXQKB3TjJU-bXJxNYc';
+
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        function log(title, content, type = 'info') {
+            const output = document.getElementById('output');
+            const section = document.createElement('div');
+            section.className = 'section';
+            section.innerHTML = `
+                <h3>${title}</h3>
+                <div class="status ${type}">${content}</div>
+            `;
+            output.appendChild(section);
+        }
+
+        function logJson(title, data, type = 'info') {
+            const output = document.getElementById('output');
+            const section = document.createElement('div');
+            section.className = 'section';
+            section.innerHTML = `
+                <h3>${title}</h3>
+                <pre>${JSON.stringify(data, null, 2)}</pre>
+            `;
+            output.appendChild(section);
+        }
+
+        async function runDiagnostics() {
+            document.getElementById('output').innerHTML = '<div class="loading">🔄 Running diagnostics...</div>';
+
+            try {
+                // 1. Check Auth Session
+                const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+                if (sessionError) {
+                    log('❌ Session Error', sessionError.message, 'error');
+                    return;
+                }
+
+                if (!session) {
+                    log('⚠️ Not Logged In', 'You need to log in first. Please sign in on the main app.', 'warning');
+                    return;
+                }
+
+                log('✅ Auth Session', `Logged in as: ${session.user.email}`, 'success');
+                logJson('User Data', {
+                    id: session.user.id,
+                    email: session.user.email,
+                    email_confirmed_at: session.user.email_confirmed_at,
+                    created_at: session.user.created_at,
+                    metadata: session.user.user_metadata
+                });
+
+                // 2. Check Profile
+                const { data: profile, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', session.user.id)
+                    .maybeSingle();
+
+                if (profileError) {
+                    log('❌ Profile Error', profileError.message, 'error');
+                } else if (!profile) {
+                    log('❌ Profile Missing', 'Profile not found in database! This is the problem.', 'error');
+                    log('🔧 Fix Required', 'The profile creation trigger may not have fired. Try logging out and back in.', 'warning');
+                } else {
+                    log('✅ Profile Found', `User type: ${profile.user_type}`, 'success');
+                    logJson('Profile Data', profile);
+                }
+
+                // 3. If picker, check picker_profile
+                if (profile && profile.user_type === 'picker') {
+                    const { data: pickerProfile, error: pickerError } = await supabase
+                        .from('picker_profiles')
+                        .select('*')
+                        .eq('user_id', session.user.id)
+                        .maybeSingle();
+
+                    if (pickerError) {
+                        log('❌ Picker Profile Error', pickerError.message, 'error');
+                    } else if (!pickerProfile) {
+                        log('❌ Picker Profile Missing', 'Picker profile not found! This is why listings cannot be created.', 'error');
+                        log('🔧 Creating Picker Profile Now...', 'Attempting to create picker profile...', 'info');
+
+                        // Try to create picker profile
+                        const { data: newPicker, error: createError } = await supabase
+                            .from('picker_profiles')
+                            .insert({ user_id: session.user.id })
+                            .select()
+                            .single();
+
+                        if (createError) {
+                            log('❌ Failed to Create Picker Profile', createError.message, 'error');
+                        } else {
+                            log('✅ Picker Profile Created!', 'You can now create listings.', 'success');
+                            logJson('New Picker Profile', newPicker);
+                        }
+                    } else {
+                        log('✅ Picker Profile Found', `ID: ${pickerProfile.id}`, 'success');
+                        logJson('Picker Profile Data', pickerProfile);
+                    }
+                }
+
+                // 4. Check RLS Policies
+                log('🔍 Testing RLS Policies', 'Checking if you can read your own data...', 'info');
+
+                // Test profile read
+                const { error: profileReadError } = await supabase
+                    .from('profiles')
+                    .select('id')
+                    .eq('id', session.user.id)
+                    .single();
+
+                if (profileReadError) {
+                    log('❌ Profile Read Failed', 'RLS policy blocking profile read: ' + profileReadError.message, 'error');
+                } else {
+                    log('✅ Profile Read OK', 'Can read own profile', 'success');
+                }
+
+            } catch (error) {
+                log('❌ Diagnostic Error', error.message, 'error');
+                console.error(error);
+            }
+        }
+
+        async function testListingCreation() {
+            document.getElementById('output').innerHTML = '<div class="loading">🧪 Testing listing creation...</div>';
+
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                log('❌ Not Logged In', 'Please log in first', 'error');
+                return;
+            }
+
+            // Get picker profile
+            const { data: pickerProfile } = await supabase
+                .from('picker_profiles')
+                .select('id')
+                .eq('user_id', session.user.id)
+                .maybeSingle();
+
+            if (!pickerProfile) {
+                log('❌ Not a Picker', 'You need to be a picker to create listings', 'error');
+                return;
+            }
+
+            // Try to create a test listing
+            const testListing = {
+                picker_id: pickerProfile.id,
+                title: 'TEST LISTING - DELETE ME',
+                description: 'This is a test listing created by the diagnostic tool',
+                category: 'Test',
+                region: 'Test Region',
+                price: 10.00,
+                base_price: 10.00,
+                transportation_cost: 0,
+                images: [],
+                videos: [],
+                media_links: []
+            };
+
+            log('🧪 Attempting to Create Test Listing', 'Trying to insert into listings table...', 'info');
+            logJson('Test Data', testListing);
+
+            const { data, error } = await supabase
+                .from('listings')
+                .insert(testListing)
+                .select()
+                .single();
+
+            if (error) {
+                log('❌ Listing Creation Failed', error.message, 'error');
+                logJson('Error Details', error);
+            } else {
+                log('✅ Listing Created Successfully!', 'The database is working. The problem might be in the frontend form.', 'success');
+                logJson('Created Listing', data);
+
+                // Clean up - delete the test listing
+                await supabase.from('listings').delete().eq('id', data.id);
+                log('🧹 Test Listing Deleted', 'Cleaned up test data', 'info');
+            }
+        }
+
+        async function testDesireCreation() {
+            document.getElementById('output').innerHTML = '<div class="loading">🧪 Testing desire creation...</div>';
+
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                log('❌ Not Logged In', 'Please log in first', 'error');
+                return;
+            }
+
+            // Check if user is a client
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('user_type')
+                .eq('id', session.user.id)
+                .single();
+
+            if (!profile || profile.user_type !== 'client') {
+                log('❌ Not a Collector', 'You need to be a collector to create desires', 'error');
+                return;
+            }
+
+            // Try to create a test desire
+            const testDesire = {
+                client_id: session.user.id,
+                title: 'TEST DESIRE - DELETE ME',
+                description: 'This is a test desire created by the diagnostic tool',
+                category: 'Test',
+                preferred_regions: ['Test Region'],
+                preferred_locations: ['Test Location'],
+                urgency: 'medium'
+            };
+
+            log('🧪 Attempting to Create Test Desire', 'Trying to insert into client_desires table...', 'info');
+            logJson('Test Data', testDesire);
+
+            const { data, error } = await supabase
+                .from('client_desires')
+                .insert(testDesire)
+                .select()
+                .single();
+
+            if (error) {
+                log('❌ Desire Creation Failed', error.message, 'error');
+                logJson('Error Details', error);
+            } else {
+                log('✅ Desire Created Successfully!', 'The database is working. The problem might be in the frontend form.', 'success');
+                logJson('Created Desire', data);
+
+                // Clean up - delete the test desire
+                await supabase.from('client_desires').delete().eq('id', data.id);
+                log('🧹 Test Desire Deleted', 'Cleaned up test data', 'info');
+            }
+        }
+
+        // Auto-run diagnostics on page load
+        window.addEventListener('load', () => {
+            runDiagnostics();
+        });
+    </script>
+</body>
+</html>

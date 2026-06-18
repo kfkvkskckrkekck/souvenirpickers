@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payout System Diagnostic</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #2563eb;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+    }
+    .section {
+      margin: 30px 0;
+      padding: 20px;
+      background: #f9fafb;
+      border-radius: 8px;
+      border-left: 4px solid #2563eb;
+    }
+    .section h2 {
+      margin-top: 0;
+      color: #1e40af;
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      margin: 5px;
+    }
+    button:hover {
+      background: #1d4ed8;
+    }
+    button:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+    .result {
+      margin-top: 15px;
+      padding: 15px;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .success {
+      background: #d1fae5;
+      border: 1px solid #059669;
+      color: #065f46;
+    }
+    .error {
+      background: #fee2e2;
+      border: 1px solid #dc2626;
+      color: #991b1b;
+    }
+    .info {
+      background: #dbeafe;
+      border: 1px solid #2563eb;
+      color: #1e40af;
+    }
+    .warning {
+      background: #fef3c7;
+      border: 1px solid #f59e0b;
+      color: #92400e;
+    }
+    input, select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 5px;
+      color: #374151;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-left: 10px;
+    }
+    .status-success {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    .status-warning {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    .status-error {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Payout System Diagnostic Tool</h1>
+    <p class="subtitle">Test and verify the complete payout validation flow</p>
+
+    <!-- Authentication Section -->
+    <div class="section">
+      <h2>1. Authentication</h2>
+      <div class="form-group">
+        <label>Email:</label>
+        <input type="email" id="email" placeholder="picker@example.com">
+      </div>
+      <div class="form-group">
+        <label>Password:</label>
+        <input type="password" id="password" placeholder="Enter password">
+      </div>
+      <button onclick="signIn()">Sign In</button>
+      <button onclick="checkAuth()">Check Current Session</button>
+      <div id="auth-result"></div>
+    </div>
+
+    <!-- Bank Account Validation Section -->
+    <div class="section">
+      <h2>2. Test Bank Account Validation</h2>
+      <p style="color: #666; font-size: 14px;">Test with Stripe's test bank accounts</p>
+
+      <div class="form-group">
+        <label>Bank Name:</label>
+        <input type="text" id="bank-name" value="Test Bank">
+      </div>
+
+      <div class="form-group">
+        <label>Account Holder Name:</label>
+        <input type="text" id="account-holder" value="John Doe">
+      </div>
+
+      <div class="form-group">
+        <label>Account Number (IBAN or Account #):</label>
+        <input type="text" id="account-number" value="000123456789">
+        <small style="color: #666;">Test: 000123456789 (valid) or 000000000000 (invalid)</small>
+      </div>
+
+      <div class="form-group">
+        <label>Routing Number (US only):</label>
+        <input type="text" id="routing-number" value="110000000">
+        <small style="color: #666;">Test: 110000000 (valid)</small>
+      </div>
+
+      <div class="form-group">
+        <label>SWIFT Code:</label>
+        <input type="text" id="swift-code" value="BOFAUS3N">
+      </div>
+
+      <div class="form-group">
+        <label>Country:</label>
+        <select id="country">
+          <option value="US">United States</option>
+          <option value="DE">Germany</option>
+          <option value="FR">France</option>
+          <option value="GB">United Kingdom</option>
+          <option value="RO">Romania</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Currency:</label>
+        <select id="currency">
+          <option value="USD">USD</option>
+          <option value="EUR">EUR</option>
+          <option value="GBP">GBP</option>
+          <option value="RON">RON</option>
+        </select>
+      </div>
+
+      <button onclick="testValidAccount()">Test Valid Account</button>
+      <button onclick="testInvalidAccount()">Test Invalid Account</button>
+      <button onclick="testCustomAccount()">Validate Custom Input</button>
+      <div id="validation-result"></div>
+    </div>
+
+    <!-- Check Saved Data Section -->
+    <div class="section">
+      <h2>3. Check Saved Payout Information</h2>
+      <button onclick="checkPayoutInfo()">Load My Payout Info</button>
+      <button onclick="checkAllPayoutInfo()">Load All Payout Info (Admin)</button>
+      <div id="payout-info-result"></div>
+    </div>
+
+    <!-- Stripe Connect Status Section -->
+    <div class="section">
+      <h2>4. Check Stripe Connect Status</h2>
+      <button onclick="checkStripeAccount()">Check My Stripe Account</button>
+      <div id="stripe-result"></div>
+    </div>
+
+    <!-- Test Payout Creation Section -->
+    <div class="section">
+      <h2>5. Test Payout Processing</h2>
+      <p style="color: #666; font-size: 14px;">Simulate the complete payout flow</p>
+
+      <button onclick="checkPendingOrders()">Check Pending Orders</button>
+      <button onclick="checkEarnings()">Check My Earnings</button>
+      <button onclick="simulateEscrowRelease()">Simulate Escrow Release (Admin)</button>
+      <div id="payout-test-result"></div>
+    </div>
+
+    <!-- System Health Check -->
+    <div class="section">
+      <h2>6. System Health Check</h2>
+      <button onclick="runFullDiagnostic()">Run Full Diagnostic</button>
+      <div id="diagnostic-result"></div>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://bfqvzxczmvfteqbhgyvx.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmcXZ6eGN6bXZmdGVxYmhneXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjg0MDU0MzEsImV4cCI6MjA0Mzk4MTQzMX0.RcJwDGezv6Kf6kcR3tHiKCvbAzvj4hq5EcX4G8xcvts';
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    function showResult(elementId, message, type = 'info') {
+      const element = document.getElementById(elementId);
+      element.innerHTML = `<div class="result ${type}">${message}</div>`;
+    }
+
+    async function signIn() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      if (!email || !password) {
+        showResult('auth-result', 'Please enter email and password', 'error');
+        return;
+      }
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        showResult('auth-result', `Error: ${error.message}`, 'error');
+      } else {
+        showResult('auth-result', `✓ Signed in as: ${data.user.email}\nUser ID: ${data.user.id}\nUser Type: ${data.user.user_metadata?.user_type || 'Not set'}`, 'success');
+      }
+    }
+
+    async function checkAuth() {
+      const { data: { session }, error } = await supabase.auth.getSession();
+
+      if (error || !session) {
+        showResult('auth-result', 'Not authenticated. Please sign in.', 'warning');
+      } else {
+        showResult('auth-result', `✓ Active session\nUser: ${session.user.email}\nUser ID: ${session.user.id}\nExpires: ${new Date(session.expires_at * 1000).toLocaleString()}`, 'success');
+      }
+    }
+
+    async function testValidAccount() {
+      const session = await supabase.auth.getSession();
+      if (!session.data.session) {
+        showResult('validation-result', 'Please sign in first', 'error');
+        return;
+      }
+
+      showResult('validation-result', 'Validating with Stripe...', 'info');
+
+      try {
+        const response = await fetch(
+          `${SUPABASE_URL}/functions/v1/validate-bank-account`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${session.data.session.access_token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              bank_name: 'Test Bank',
+              account_holder_name: 'John Doe',
+              account_number: '000123456789',
+              routing_number: '110000000',
+              swift_code: 'BOFAUS3N',
+              country: 'US',
+              currency: 'USD',
+            }),
+          }
+        );
+
+        const result = await response.json();
+
+        if (result.success) {
+          showResult('validation-result', `✓ VALID ACCOUNT\n\nLast 4 digits: ${result.last4}\nMessage: ${result.message}\n\nFull response:\n${JSON.stringify(result, null, 2)}`, 'success');
+        } else {
+          showResult('validation-result', `✗ VALIDATION FAILED\n\nError: ${result.error}\n\nFull response:\n${JSON.stringify(result, null, 2)}`, 'error');
+        }
+      } catch (err) {
+        showResult('validation-result', `Error calling validation function:\n${err.message}`, 'error');
+      }
+    }
+
+    async function testInvalidAccount() {
+      const session = await supabase.auth.getSession();
+      if (!session.data.session) {
+        showResult('validation-result', 'Please sign in first', 'error');
+        return;
+      }
+
+      showResult('validation-result', 'Testing invalid account...', 'info');
+
+      try {
+        const response = await fetch(
+          `${SUPABASE_URL}/functions/v1/validate-bank-account`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${session.data.session.access_token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              bank_name: 'Test Bank',
+              account_holder_name: 'John Doe',
+              account_number: '000000000000',
+              routing_number: '110000000',
+              swift_code: 'BOFAUS3N',
+              country: 'US',
+              currency: 'USD',
+            }),
+          }
+        );
+
+        const result = await response.json();
+
+        if (result.success) {
+          showResult('validation-result', `⚠️ WARNING: Invalid account was accepted!\n\nThis should not happen. Full response:\n${JSON.stringify(result, null, 2)}`, 'warning');
+        } else {
+          showResult('validation-result', `✓ CORRECTLY REJECTED\n\nError message: ${result.error}\n\nThis is the expected behavior.\n\nFull response:\n${JSON.stringify(result, null, 2)}`, 'success');
+        }
+      } catch (err) {
+        showResult('validation-result', `Error calling validation function:\n${err.message}`, 'error');
+      }
+    }
+
+    async function testCustomAccount() {
+      const session = await supabase.auth.getSession();
+      if (!session.data.session) {
+        showResult('validation-result', 'Please sign in first', 'error');
+        return;
+      }
+
+      const data = {
+        bank_name: document.getElementById('bank-name').value,
+        account_holder_name: document.getElementById('account-holder').value,
+        account_number: document.getElementById('account-number').value,
+        routing_number: document.getElementById('routing-number').value || null,
+        swift_code: document.getElementById('swift-code').value,
+        country: document.getElementById('country').value,
+        currency: document.getElementById('currency').value,
+      };
+
+      showResult('validation-result', 'Validating with Stripe...', 'info');
+
+      try {
+        const response = await fetch(
+          `${SUPABASE_URL}/functions/v1/validate-bank-account`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${session.data.session.access_token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+          }
+        );
+
+        const result = await response.json();
+
+        if (result.success) {
+          showResult('validation-result', `✓ VALID ACCOUNT\n\nLast 4 digits: ${result.last4}\nMessage: ${result.message}\n\nFull response:\n${JSON.stringify(result, null, 2)}`, 'success');
+        } else {
+          showResult('validation-result', `✗ VALIDATION FAILED\n\nError: ${result.error}\n\nFull response:\n${JSON.stringify(result, null, 2)}`, 'error');
+        }
+      } catch (err) {
+        showResult('validation-result', `Error calling validation function:\n${err.message}`, 'error');
+      }
+    }
+
+    async function checkPayoutInfo() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        showResult('payout-info-result', 'Please sign in first', 'error');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('picker_payout_info')
+        .select('*')
+        .eq('picker_id', user.id)
+        .single();
+
+      if (error) {
+        showResult('payout-info-result', `No payout info found or error:\n${error.message}`, 'warning');
+      } else {
+        const masked = {
+          ...data,
+          bank_account_number: data.bank_account_number ? `•••• ${data.bank_account_last4 || data.bank_account_number.slice(-4)}` : null,
+        };
+        showResult('payout-info-result', `✓ Payout Information Found\n\n${JSON.stringify(masked, null, 2)}`, 'success');
+      }
+    }
+
+    async function checkAllPayoutInfo() {
+      const { data, error } = await supabase
+        .from('picker_payout_info')
+        .select(`
+          *,
+          profiles(full_name, email)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (error) {
+        showResult('payout-info-result', `Error: ${error.message}`, 'error');
+      } else {
+        showResult('payout-info-result', `✓ Found ${data.length} payout accounts\n\n${JSON.stringify(data, null, 2)}`, 'success');
+      }
+    }
+
+    async function checkStripeAccount() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        showResult('stripe-result', 'Please sign in first', 'error');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('stripe_account_id, stripe_customer_id')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        showResult('stripe-result', `Error: ${error.message}`, 'error');
+      } else if (!data.stripe_account_id) {
+        showResult('stripe-result', '⚠️ No Stripe Connect account found\n\nUser needs to complete Stripe onboarding', 'warning');
+      } else {
+        showResult('stripe-result', `✓ Stripe Account Found\n\nConnect Account: ${data.stripe_account_id}\nCustomer ID: ${data.stripe_customer_id || 'Not set'}`, 'success');
+      }
+    }
+
+    async function checkPendingOrders() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        showResult('payout-test-result', 'Please sign in first', 'error');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*, listings(title)')
+        .eq('picker_id', user.id)
+        .in('status', ['pending', 'accepted', 'shipped', 'delivered'])
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        showResult('payout-test-result', `Error: ${error.message}`, 'error');
+      } else {
+        showResult('payout-test-result', `✓ Found ${data.length} pending orders\n\n${JSON.stringify(data, null, 2)}`, 'info');
+      }
+    }
+
+    async function checkEarnings() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        showResult('payout-test-result', 'Please sign in first', 'error');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('picker_earnings')
+        .select('*')
+        .eq('picker_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        showResult('payout-test-result', `Error: ${error.message}`, 'error');
+      } else if (data.length === 0) {
+        showResult('payout-test-result', 'No earnings records found yet', 'warning');
+      } else {
+        const total = data.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+        showResult('payout-test-result', `✓ Found ${data.length} earnings records\n\nTotal Earned: $${total.toFixed(2)}\n\n${JSON.stringify(data, null, 2)}`, 'success');
+      }
+    }
+
+    async function simulateEscrowRelease() {
+      showResult('payout-test-result', 'This requires service role access. Use Supabase SQL Editor instead:\n\nSELECT process_escrow_releases();', 'info');
+    }
+
+    async function runFullDiagnostic() {
+      showResult('diagnostic-result', 'Running full diagnostic...', 'info');
+
+      const results = [];
+
+      // Check auth
+      const { data: { session } } = await supabase.auth.getSession();
+      results.push(`Auth: ${session ? '✓ Signed in as ' + session.user.email : '✗ Not signed in'}`);
+
+      if (session) {
+        // Check payout info
+        const { data: payoutInfo } = await supabase
+          .from('picker_payout_info')
+          .select('*')
+          .eq('picker_id', session.user.id)
+          .single();
+        results.push(`Payout Info: ${payoutInfo ? '✓ Configured' : '✗ Not configured'}`);
+
+        // Check Stripe account
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('stripe_account_id')
+          .eq('id', session.user.id)
+          .single();
+        results.push(`Stripe Connect: ${profile?.stripe_account_id ? '✓ Connected' : '✗ Not connected'}`);
+
+        // Check earnings
+        const { data: earnings } = await supabase
+          .from('picker_earnings')
+          .select('*')
+          .eq('picker_id', session.user.id);
+        results.push(`Earnings Records: ${earnings?.length || 0} found`);
+
+        // Check orders
+        const { data: orders } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('picker_id', session.user.id);
+        results.push(`Orders: ${orders?.length || 0} found`);
+      }
+
+      showResult('diagnostic-result', results.join('\n'), 'info');
+    }
+  </script>
+</body>
+</html>

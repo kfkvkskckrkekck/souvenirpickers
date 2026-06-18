@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Supabase Connection Test</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+    .test-result {
+      margin: 15px 0;
+      padding: 15px;
+      border-radius: 4px;
+      font-family: monospace;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .success {
+      background: #d4edda;
+      border: 1px solid #c3e6cb;
+      color: #155724;
+    }
+    .error {
+      background: #f8d7da;
+      border: 1px solid #f5c6cb;
+      color: #721c24;
+    }
+    .info {
+      background: #d1ecf1;
+      border: 1px solid #bee5eb;
+      color: #0c5460;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 10px;
+    }
+    button:hover {
+      background: #45a049;
+    }
+    .loading {
+      color: #666;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 Supabase Connection Test</h1>
+    <button onclick="testConnection()">Test Connection</button>
+    <div id="results"></div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://bfqvzxczmvfteqbhgyvx.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmcXZ6eGN6bXZmdGVxYmhneXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ0MTAxODIsImV4cCI6MjA3OTk4NjE4Mn0.2kgZ_VfgN42cs3B-40snDRgThCOVNIJ0BGQ_gdhbzy0';
+
+    function addResult(message, type = 'info') {
+      const results = document.getElementById('results');
+      const div = document.createElement('div');
+      div.className = `test-result ${type}`;
+      div.textContent = message;
+      results.appendChild(div);
+    }
+
+    function clearResults() {
+      document.getElementById('results').innerHTML = '';
+    }
+
+    async function testConnection() {
+      clearResults();
+      addResult('🔄 Testing Supabase connection...', 'info');
+
+      try {
+        // Test 1: Check if credentials are provided
+        addResult(`\n✓ URL: ${SUPABASE_URL}`, 'info');
+        addResult(`✓ Key: ${SUPABASE_ANON_KEY.substring(0, 50)}...`, 'info');
+
+        // Test 2: Decode JWT to check expiry
+        try {
+          const base64Url = SUPABASE_ANON_KEY.split('.')[1];
+          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+          const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+          }).join(''));
+
+          const payload = JSON.parse(jsonPayload);
+          addResult(`\n✓ JWT Payload:\n${JSON.stringify(payload, null, 2)}`, 'info');
+
+          const expiry = new Date(payload.exp * 1000);
+          const now = new Date();
+          addResult(`\n✓ JWT Expiry: ${expiry.toISOString()}`, expiry > now ? 'success' : 'error');
+          addResult(`✓ Current Time: ${now.toISOString()}`, 'info');
+          addResult(`✓ JWT ${expiry > now ? 'is VALID' : 'is EXPIRED'}`, expiry > now ? 'success' : 'error');
+        } catch (decodeError) {
+          addResult(`\n✗ JWT Decode Error: ${decodeError.message}`, 'error');
+        }
+
+        // Test 3: Initialize Supabase client
+        addResult('\n🔄 Initializing Supabase client...', 'info');
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        addResult('✓ Supabase client initialized', 'success');
+
+        // Test 4: Test basic query
+        addResult('\n🔄 Testing basic query...', 'info');
+        const { data, error } = await supabase.from('profiles').select('count').limit(1);
+
+        if (error) {
+          addResult(`\n✗ Query Error:\nCode: ${error.code}\nMessage: ${error.message}\nDetails: ${error.details}\nHint: ${error.hint}`, 'error');
+
+          // Additional error analysis
+          if (error.message.includes('JWT')) {
+            addResult('\n⚠️ JWT ERROR DETECTED: The Supabase anon key appears to be invalid or expired.', 'error');
+            addResult('Action Required: Generate a new anon key from your Supabase project dashboard.', 'error');
+          }
+          if (error.message.includes('relation') || error.message.includes('does not exist')) {
+            addResult('\n⚠️ TABLE ERROR: The profiles table might not exist yet.', 'error');
+            addResult('Action Required: Run database migrations.', 'error');
+          }
+        } else {
+          addResult(`\n✓ Query Successful!`, 'success');
+          addResult(`Data: ${JSON.stringify(data, null, 2)}`, 'success');
+        }
+
+        // Test 5: Check auth
+        addResult('\n🔄 Testing auth service...', 'info');
+        const { data: authData, error: authError } = await supabase.auth.getSession();
+
+        if (authError) {
+          addResult(`\n✗ Auth Error: ${authError.message}`, 'error');
+        } else {
+          addResult(`✓ Auth service is working`, 'success');
+          addResult(`Session: ${authData.session ? 'Active' : 'None'}`, 'info');
+        }
+
+      } catch (error) {
+        addResult(`\n✗ Unexpected Error: ${error.message}\n${error.stack}`, 'error');
+      }
+    }
+
+    // Auto-run on load
+    window.addEventListener('load', () => {
+      setTimeout(testConnection, 500);
+    });
+  </script>
+</body>
+</html>

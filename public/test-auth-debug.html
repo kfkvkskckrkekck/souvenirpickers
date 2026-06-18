@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auth Debug Test - SouvenirPickers</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #2563eb;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      color: #64748b;
+      margin-bottom: 30px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #334155;
+    }
+    input, select {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 15px;
+      box-sizing: border-box;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: #2563eb;
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+    button:hover {
+      background: #1d4ed8;
+    }
+    button:disabled {
+      background: #94a3b8;
+      cursor: not-allowed;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 8px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+    }
+    .success {
+      background: #dcfce7;
+      border: 2px solid #22c55e;
+      color: #15803d;
+    }
+    .error {
+      background: #fee2e2;
+      border: 2px solid #ef4444;
+      color: #991b1b;
+    }
+    .info {
+      background: #dbeafe;
+      border: 2px solid #3b82f6;
+      color: #1e40af;
+    }
+    .config-info {
+      background: #f1f5f9;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+    .config-info strong {
+      color: #2563eb;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Authentication Debug Tool</h1>
+    <p class="subtitle">Test Supabase authentication and diagnose issues</p>
+
+    <div class="config-info">
+      <strong>Supabase Configuration:</strong><br>
+      URL: <span id="supabase-url"></span><br>
+      Status: <span id="config-status"></span>
+    </div>
+
+    <div class="form-group">
+      <label>Test Email</label>
+      <input type="email" id="email" placeholder="test@example.com" value="test@example.com">
+    </div>
+
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="password" placeholder="password123" value="Test123456!">
+    </div>
+
+    <div class="form-group">
+      <label>Full Name</label>
+      <input type="text" id="fullName" placeholder="Test User" value="Test User">
+    </div>
+
+    <div class="form-group">
+      <label>User Type</label>
+      <select id="userType">
+        <option value="client">Client</option>
+        <option value="picker">Picker</option>
+      </select>
+    </div>
+
+    <div>
+      <button onclick="testSignUp()">Test Sign Up</button>
+      <button onclick="testSignIn()">Test Sign In</button>
+      <button onclick="testPasswordReset()">Test Password Reset</button>
+      <button onclick="testMagicLink()">Test Magic Link</button>
+      <button onclick="checkSession()">Check Session</button>
+      <button onclick="clearResult()">Clear</button>
+    </div>
+
+    <div id="result"></div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://bfqvzxczmvfteqbhgyvx.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmcXZ6eGN6bXZmdGVxYmhneXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ0MTAxODIsImV4cCI6MjA3OTk4NjE4Mn0.2kgZ_VfgN42cs3B-40snDRgThCOVNIJ0BGQ_gdhbzy0';
+
+    const { createClient } = supabase;
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    document.getElementById('supabase-url').textContent = SUPABASE_URL;
+    document.getElementById('config-status').textContent = '✅ Connected';
+
+    function showResult(type, message, details = null) {
+      const resultDiv = document.getElementById('result');
+      resultDiv.className = `result ${type}`;
+
+      let content = message;
+      if (details) {
+        content += '\n\n--- Details ---\n' + JSON.stringify(details, null, 2);
+      }
+
+      resultDiv.textContent = content;
+    }
+
+    function clearResult() {
+      document.getElementById('result').innerHTML = '';
+    }
+
+    async function testSignUp() {
+      clearResult();
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const fullName = document.getElementById('fullName').value;
+      const userType = document.getElementById('userType').value;
+
+      showResult('info', 'Testing sign up...\nPlease wait...');
+
+      try {
+        const { data, error } = await supabaseClient.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: window.location.origin,
+            data: {
+              full_name: fullName,
+              user_type: userType,
+            },
+          },
+        });
+
+        if (error) {
+          showResult('error', '❌ Sign Up Failed', {
+            error: error.message,
+            status: error.status,
+            code: error.code,
+            details: error
+          });
+          return;
+        }
+
+        if (data.user && !data.session) {
+          showResult('success', '✅ Sign Up Successful!\n\nEmail confirmation required.\nCheck your email for confirmation link.', {
+            user_id: data.user.id,
+            email: data.user.email,
+            email_confirmed: data.user.email_confirmed_at ? 'Yes' : 'No',
+            confirmation_sent: data.user.confirmation_sent_at ? 'Yes' : 'No'
+          });
+        } else if (data.user && data.session) {
+          showResult('success', '✅ Sign Up Successful!\n\nUser is automatically signed in (email confirmation disabled).', {
+            user_id: data.user.id,
+            email: data.user.email,
+            session: 'Active',
+            access_token: data.session.access_token.substring(0, 20) + '...'
+          });
+        }
+      } catch (err) {
+        showResult('error', '❌ Unexpected Error', {
+          message: err.message,
+          stack: err.stack
+        });
+      }
+    }
+
+    async function testSignIn() {
+      clearResult();
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      showResult('info', 'Testing sign in...\nPlease wait...');
+
+      try {
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) {
+          showResult('error', '❌ Sign In Failed', {
+            error: error.message,
+            status: error.status,
+            code: error.code,
+            details: error
+          });
+          return;
+        }
+
+        showResult('success', '✅ Sign In Successful!', {
+          user_id: data.user.id,
+          email: data.user.email,
+          session: 'Active',
+          access_token: data.session.access_token.substring(0, 20) + '...'
+        });
+      } catch (err) {
+        showResult('error', '❌ Unexpected Error', {
+          message: err.message,
+          stack: err.stack
+        });
+      }
+    }
+
+    async function testPasswordReset() {
+      clearResult();
+      const email = document.getElementById('email').value;
+
+      showResult('info', 'Testing password reset...\nPlease wait...');
+
+      try {
+        const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+          redirectTo: window.location.origin,
+        });
+
+        if (error) {
+          showResult('error', '❌ Password Reset Failed', {
+            error: error.message,
+            status: error.status,
+            code: error.code,
+            details: error
+          });
+          return;
+        }
+
+        showResult('success', '✅ Password Reset Email Sent!\n\nCheck your email for the reset link.', {
+          email: email,
+          redirect_to: window.location.origin
+        });
+      } catch (err) {
+        showResult('error', '❌ Unexpected Error', {
+          message: err.message,
+          stack: err.stack
+        });
+      }
+    }
+
+    async function testMagicLink() {
+      clearResult();
+      const email = document.getElementById('email').value;
+
+      showResult('info', 'Testing magic link...\nPlease wait...');
+
+      try {
+        const { data, error } = await supabaseClient.auth.signInWithOtp({
+          email: email,
+          options: {
+            emailRedirectTo: window.location.origin,
+          },
+        });
+
+        if (error) {
+          showResult('error', '❌ Magic Link Failed', {
+            error: error.message,
+            status: error.status,
+            code: error.code,
+            details: error
+          });
+          return;
+        }
+
+        showResult('success', '✅ Magic Link Sent!\n\nCheck your email for the magic link.', {
+          email: email,
+          redirect_to: window.location.origin
+        });
+      } catch (err) {
+        showResult('error', '❌ Unexpected Error', {
+          message: err.message,
+          stack: err.stack
+        });
+      }
+    }
+
+    async function checkSession() {
+      clearResult();
+      showResult('info', 'Checking current session...');
+
+      try {
+        const { data, error } = await supabaseClient.auth.getSession();
+
+        if (error) {
+          showResult('error', '❌ Session Check Failed', {
+            error: error.message,
+            details: error
+          });
+          return;
+        }
+
+        if (data.session) {
+          showResult('success', '✅ Active Session Found!', {
+            user_id: data.session.user.id,
+            email: data.session.user.email,
+            expires_at: new Date(data.session.expires_at * 1000).toLocaleString(),
+            access_token: data.session.access_token.substring(0, 20) + '...'
+          });
+        } else {
+          showResult('info', 'ℹ️ No Active Session\n\nUser is not signed in.');
+        }
+      } catch (err) {
+        showResult('error', '❌ Unexpected Error', {
+          message: err.message,
+          stack: err.stack
+        });
+      }
+    }
+
+    // Auto-check session on load
+    window.addEventListener('load', () => {
+      checkSession();
+    });
+  </script>
+</body>
+</html>

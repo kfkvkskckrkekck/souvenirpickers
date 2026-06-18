@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Auth Test</title>
+</head>
+<body>
+    <h1>Supabase Auth Test</h1>
+    <div id="result"></div>
+
+    <script type="module">
+        const SUPABASE_URL = 'https://bfqvzxczmvfteqbhgyvx.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmcXZ6eGN6bXZmdGVxYmhneXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ0MTAxODIsImV4cCI6MjA3OTk4NjE4Mn0.2kgZ_VfgN42cs3B-40snDRgThCOVNIJ0BGQ_gdhbzy0';
+
+        const resultDiv = document.getElementById('result');
+
+        async function testAuth() {
+            resultDiv.innerHTML = '<p>Testing auth configuration...</p>';
+
+            // Test 1: Check if we can reach Supabase
+            try {
+                const response = await fetch(`${SUPABASE_URL}/auth/v1/settings`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const settings = await response.json();
+                console.log('Auth settings:', settings);
+
+                if (!response.ok) {
+                    resultDiv.innerHTML += `<p style="color: red;">❌ Error getting auth settings: ${JSON.stringify(settings)}</p>`;
+                    return;
+                }
+
+                resultDiv.innerHTML += `<p style="color: green;">✅ Auth endpoint reachable</p>`;
+                resultDiv.innerHTML += `<pre>${JSON.stringify(settings, null, 2)}</pre>`;
+
+                // Test 2: Try to sign up
+                resultDiv.innerHTML += '<p>Testing signup...</p>';
+
+                const signupResponse = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'test@example.com',
+                        password: 'test123456',
+                        data: {
+                            full_name: 'Test User',
+                            user_type: 'client'
+                        }
+                    })
+                });
+
+                const signupData = await signupResponse.json();
+                console.log('Signup response:', signupData);
+
+                if (!signupResponse.ok) {
+                    resultDiv.innerHTML += `<p style="color: red;">❌ Signup error: ${JSON.stringify(signupData)}</p>`;
+                } else {
+                    resultDiv.innerHTML += `<p style="color: green;">✅ Signup successful!</p>`;
+                    resultDiv.innerHTML += `<pre>${JSON.stringify(signupData, null, 2)}</pre>`;
+                }
+
+            } catch (error) {
+                console.error('Test error:', error);
+                resultDiv.innerHTML += `<p style="color: red;">❌ Error: ${error.message}</p>`;
+            }
+        }
+
+        testAuth();
+    </script>
+</body>
+</html>

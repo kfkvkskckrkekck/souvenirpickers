@@ -1,0 +1,1 @@
+-- Reading from apply_part1.sql

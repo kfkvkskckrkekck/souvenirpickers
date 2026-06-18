@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+    }
+    video {
+      width: 100%;
+      border: 2px solid #333;
+    }
+    .status {
+      margin: 20px 0;
+      padding: 10px;
+      background: #f0f0f0;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Video Loading Test</h1>
+
+  <div class="status">
+    <strong>Status:</strong> <span id="status">Loading...</span><br>
+    <strong>Video Source:</strong> <span id="source">-</span><br>
+    <strong>Can Play Type:</strong> <span id="canPlay">-</span>
+  </div>
+
+  <video
+    id="testVideo"
+    controls
+    preload="metadata"
+    crossorigin="anonymous"
+  >
+    <source
+      src="https://bfqvzxczmvfteqbhgyvx.supabase.co/storage/v1/object/public/media/platform-demo-video.mp4"
+      type="video/mp4"
+    />
+    Your browser does not support the video tag.
+  </video>
+
+  <script>
+    const video = document.getElementById('testVideo');
+    const status = document.getElementById('status');
+    const source = document.getElementById('source');
+    const canPlay = document.getElementById('canPlay');
+
+    source.textContent = video.querySelector('source').src;
+    canPlay.textContent = video.canPlayType('video/mp4');
+
+    video.addEventListener('loadstart', () => {
+      status.textContent = 'Load started...';
+      console.log('Load started');
+    });
+
+    video.addEventListener('loadedmetadata', () => {
+      status.textContent = 'Metadata loaded. Duration: ' + video.duration + 's';
+      console.log('Metadata loaded', {
+        duration: video.duration,
+        videoWidth: video.videoWidth,
+        videoHeight: video.videoHeight
+      });
+    });
+
+    video.addEventListener('loadeddata', () => {
+      status.textContent = 'Data loaded. Ready to play!';
+      console.log('Data loaded');
+    });
+
+    video.addEventListener('error', (e) => {
+      status.textContent = 'Error loading video: ' + (video.error ? video.error.message : 'Unknown error');
+      console.error('Video error:', video.error);
+    });
+
+    video.addEventListener('canplay', () => {
+      status.textContent = 'Video can play!';
+      console.log('Can play');
+    });
+
+    // Test fetch
+    fetch('https://bfqvzxczmvfteqbhgyvx.supabase.co/storage/v1/object/public/media/platform-demo-video.mp4', {
+      method: 'HEAD'
+    })
+    .then(response => {
+      console.log('Fetch test success:', {
+        status: response.status,
+        contentType: response.headers.get('content-type'),
+        contentLength: response.headers.get('content-length'),
+        acceptRanges: response.headers.get('accept-ranges')
+      });
+    })
+    .catch(err => {
+      console.error('Fetch test failed:', err);
+    });
+  </script>
+</body>
+</html>

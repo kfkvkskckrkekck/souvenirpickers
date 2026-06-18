@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Auth on Live Site</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #2563eb;
+      margin-bottom: 20px;
+    }
+    .test-section {
+      margin: 30px 0;
+      padding: 20px;
+      background: #f9fafb;
+      border-left: 4px solid #2563eb;
+      border-radius: 4px;
+    }
+    .status {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+      font-weight: bold;
+    }
+    .success {
+      background: #d1fae5;
+      color: #065f46;
+      border: 1px solid #10b981;
+    }
+    .error {
+      background: #fee;
+      color: #991b1b;
+      border: 1px solid #ef4444;
+    }
+    .info {
+      background: #e0e7ff;
+      color: #3730a3;
+      border: 1px solid #6366f1;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      margin: 10px 5px 10px 0;
+    }
+    button:hover {
+      background: #1d4ed8;
+    }
+    button:disabled {
+      background: #94a3b8;
+      cursor: not-allowed;
+    }
+    pre {
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 15px;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 Live Auth Test - souvenirpickers.com</h1>
+
+    <div class="test-section">
+      <h3>Configuration Check</h3>
+      <div id="config-status">Checking...</div>
+    </div>
+
+    <div class="test-section">
+      <h3>Test Sign Up</h3>
+      <input type="email" id="signup-email" placeholder="test@example.com">
+      <input type="password" id="signup-password" placeholder="password123">
+      <input type="text" id="signup-name" placeholder="Full Name">
+      <button onclick="testSignUp()">Test Sign Up</button>
+      <div id="signup-result"></div>
+    </div>
+
+    <div class="test-section">
+      <h3>Test Sign In</h3>
+      <input type="email" id="signin-email" placeholder="test@example.com">
+      <input type="password" id="signin-password" placeholder="password123">
+      <button onclick="testSignIn()">Test Sign In</button>
+      <div id="signin-result"></div>
+    </div>
+
+    <div class="test-section">
+      <h3>Test Password Reset</h3>
+      <input type="email" id="reset-email" placeholder="test@example.com">
+      <button onclick="testPasswordReset()">Test Password Reset</button>
+      <div id="reset-result"></div>
+    </div>
+
+    <div class="test-section">
+      <h3>Current Session</h3>
+      <button onclick="checkSession()">Check Session</button>
+      <div id="session-result"></div>
+    </div>
+  </div>
+
+  <script>
+    const supabaseUrl = 'https://bfqvzxczmvfteqbhgyvx.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmcXZ6eGN6bXZmdGVxYmhneXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ0MTAxODIsImV4cCI6MjA3OTk4NjE4Mn0.2kgZ_VfgN42cs3B-40snDRgThCOVNIJ0BGQ_gdhbzy0';
+
+    const { createClient } = supabase;
+    const client = createClient(supabaseUrl, supabaseKey);
+
+    async function checkConfig() {
+      const statusDiv = document.getElementById('config-status');
+      try {
+        const { data: { session }, error } = await client.auth.getSession();
+
+        statusDiv.innerHTML = `
+          <div class="status success">✅ Configuration is valid</div>
+          <div class="info" style="margin-top: 10px;">
+            <strong>Supabase URL:</strong> ${supabaseUrl}<br>
+            <strong>Connected:</strong> Yes<br>
+            <strong>Current Session:</strong> ${session ? 'Active' : 'None'}
+          </div>
+        `;
+      } catch (error) {
+        statusDiv.innerHTML = `
+          <div class="status error">❌ Configuration error</div>
+          <pre>${JSON.stringify(error, null, 2)}</pre>
+        `;
+      }
+    }
+
+    async function testSignUp() {
+      const resultDiv = document.getElementById('signup-result');
+      const email = document.getElementById('signup-email').value;
+      const password = document.getElementById('signup-password').value;
+      const fullName = document.getElementById('signup-name').value;
+
+      if (!email || !password || !fullName) {
+        resultDiv.innerHTML = '<div class="status error">Please fill all fields</div>';
+        return;
+      }
+
+      resultDiv.innerHTML = '<div class="status info">Testing sign up...</div>';
+
+      try {
+        const { data, error } = await client.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}`,
+            data: {
+              full_name: fullName,
+              user_type: 'client'
+            }
+          }
+        });
+
+        if (error) throw error;
+
+        resultDiv.innerHTML = `
+          <div class="status success">✅ Sign up successful!</div>
+          <pre>${JSON.stringify(data, null, 2)}</pre>
+        `;
+      } catch (error) {
+        resultDiv.innerHTML = `
+          <div class="status error">❌ Sign up failed</div>
+          <pre>${JSON.stringify(error, null, 2)}</pre>
+        `;
+      }
+    }
+
+    async function testSignIn() {
+      const resultDiv = document.getElementById('signin-result');
+      const email = document.getElementById('signin-email').value;
+      const password = document.getElementById('signin-password').value;
+
+      if (!email || !password) {
+        resultDiv.innerHTML = '<div class="status error">Please fill all fields</div>';
+        return;
+      }
+
+      resultDiv.innerHTML = '<div class="status info">Testing sign in...</div>';
+
+      try {
+        const { data, error } = await client.auth.signInWithPassword({
+          email,
+          password
+        });
+
+        if (error) throw error;
+
+        resultDiv.innerHTML = `
+          <div class="status success">✅ Sign in successful!</div>
+          <pre>${JSON.stringify(data, null, 2)}</pre>
+        `;
+      } catch (error) {
+        resultDiv.innerHTML = `
+          <div class="status error">❌ Sign in failed</div>
+          <pre>${JSON.stringify(error, null, 2)}</pre>
+        `;
+      }
+    }
+
+    async function testPasswordReset() {
+      const resultDiv = document.getElementById('reset-result');
+      const email = document.getElementById('reset-email').value;
+
+      if (!email) {
+        resultDiv.innerHTML = '<div class="status error">Please enter email</div>';
+        return;
+      }
+
+      resultDiv.innerHTML = '<div class="status info">Sending password reset email...</div>';
+
+      try {
+        const { data, error } = await client.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`
+        });
+
+        if (error) throw error;
+
+        resultDiv.innerHTML = `
+          <div class="status success">✅ Password reset email sent!</div>
+          <div class="info" style="margin-top: 10px;">
+            Check your email for the reset link.<br>
+            The link will redirect to: ${window.location.origin}/reset-password
+          </div>
+        `;
+      } catch (error) {
+        resultDiv.innerHTML = `
+          <div class="status error">❌ Password reset failed</div>
+          <pre>${JSON.stringify(error, null, 2)}</pre>
+        `;
+      }
+    }
+
+    async function checkSession() {
+      const resultDiv = document.getElementById('session-result');
+      resultDiv.innerHTML = '<div class="status info">Checking session...</div>';
+
+      try {
+        const { data: { session }, error } = await client.auth.getSession();
+
+        if (error) throw error;
+
+        if (session) {
+          resultDiv.innerHTML = `
+            <div class="status success">✅ Active session found</div>
+            <pre>${JSON.stringify(session, null, 2)}</pre>
+          `;
+        } else {
+          resultDiv.innerHTML = '<div class="status info">ℹ️ No active session</div>';
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `
+          <div class="status error">❌ Session check failed</div>
+          <pre>${JSON.stringify(error, null, 2)}</pre>
+        `;
+      }
+    }
+
+    checkConfig();
+  </script>
+</body>
+</html>

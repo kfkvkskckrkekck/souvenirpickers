@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>🔍 Signup Diagnostic - SouvenirPickers</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    h1 {
+      font-size: 32px;
+      margin-bottom: 10px;
+      color: #1a202c;
+    }
+    .subtitle {
+      color: #718096;
+      margin-bottom: 30px;
+      font-size: 16px;
+    }
+    .test-section {
+      background: #f7fafc;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .test-section h2 {
+      font-size: 20px;
+      margin-bottom: 15px;
+      color: #2d3748;
+    }
+    input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 16px;
+      margin: 8px 0;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      margin: 12px 0;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(102,126,234,0.3);
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .result {
+      margin: 20px 0;
+      padding: 16px;
+      border-radius: 8px;
+      border-left: 4px solid;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .success {
+      background: #f0fdf4;
+      border-color: #10b981;
+      color: #065f46;
+    }
+    .error {
+      background: #fef2f2;
+      border-color: #ef4444;
+      color: #991b1b;
+    }
+    .info {
+      background: #eff6ff;
+      border-color: #3b82f6;
+      color: #1e40af;
+    }
+    .code {
+      background: #1a202c;
+      color: #68d391;
+      padding: 16px;
+      border-radius: 8px;
+      margin: 12px 0;
+      overflow-x: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      margin-right: 10px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 Signup Diagnostic Tool</h1>
+    <p class="subtitle">Let's find out why signup isn't working</p>
+
+    <div class="test-section">
+      <h2>📋 Environment Check</h2>
+      <div id="env-result"></div>
+    </div>
+
+    <div class="test-section">
+      <h2>🌐 API Connection Test</h2>
+      <button onclick="testConnection()">Test Connection</button>
+      <div id="connection-result"></div>
+    </div>
+
+    <div class="test-section">
+      <h2>✍️ Signup Test</h2>
+      <input type="email" id="email" placeholder="test@example.com" value="test${Date.now()}@example.com">
+      <input type="password" id="password" placeholder="password" value="test123456">
+      <button onclick="testSignup()">🚀 Test Signup Now</button>
+      <div id="signup-result"></div>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://bfqvzxczmvfteqbhgyvx.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmcXZ6eGN6bXZmdGVxYmhneXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ0MTAxODIsImV4cCI6MjA3OTk4NjE4Mn0.2kgZ_VfgN42cs3B-40snDRgThCOVNIJ0BGQ_gdhbzy0';
+    let supabase;
+
+    // Auto-check on load
+    window.addEventListener('load', () => {
+      const envDiv = document.getElementById('env-result');
+
+      if (SUPABASE_URL && SUPABASE_KEY) {
+        envDiv.innerHTML = '<div class="success result">✅ Credentials loaded in this file</div>';
+        try {
+          supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+          envDiv.innerHTML += '<div class="success result">✅ Supabase client initialized</div>';
+        } catch (err) {
+          envDiv.innerHTML += '<div class="error result">❌ Failed to initialize: ' + err.message + '</div>';
+        }
+      } else {
+        envDiv.innerHTML = '<div class="error result">❌ Credentials missing</div>';
+      }
+    });
+
+    async function testConnection() {
+      const resultDiv = document.getElementById('connection-result');
+      resultDiv.innerHTML = '<div class="spinner"></div> Testing...';
+
+      try {
+        if (!supabase) {
+          supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        }
+
+        const { data, error } = await supabase.auth.getSession();
+
+        if (error) {
+          if (error.message.includes('Invalid API key')) {
+            resultDiv.innerHTML = `
+              <div class="error result">
+                <strong>❌ INVALID API KEY!</strong><br><br>
+                Your API key is wrong or expired.<br><br>
+                <strong>Fix:</strong><br>
+                1. Go to Supabase Dashboard → Settings → API<br>
+                2. Copy the "anon public" key<br>
+                3. Update your .env file<br>
+                4. Restart dev server
+              </div>
+            `;
+          } else {
+            resultDiv.innerHTML = '<div class="error result"><strong>❌ Error:</strong> ' + error.message + '</div>';
+          }
+        } else {
+          resultDiv.innerHTML = '<div class="success result">✅ Connection successful!</div>';
+        }
+      } catch (err) {
+        resultDiv.innerHTML = '<div class="error result"><strong>❌ Error:</strong> ' + err.message + '</div>';
+      }
+    }
+
+    async function testSignup() {
+      const resultDiv = document.getElementById('signup-result');
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      if (!email || !password) {
+        resultDiv.innerHTML = '<div class="error result">❌ Enter email and password</div>';
+        return;
+      }
+
+      resultDiv.innerHTML = '<div class="spinner"></div> Creating account...';
+
+      try {
+        if (!supabase) {
+          supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        }
+
+        console.log('📧 Testing signup for:', email);
+
+        const { data, error } = await supabase.auth.signUp({
+          email: email,
+          password: password,
+          options: {
+            emailRedirectTo: window.location.origin
+          }
+        });
+
+        console.log('📬 Response:', { data, error });
+
+        if (error) {
+          let html = '<div class="error result"><strong>❌ SIGNUP FAILED!</strong><br><br>';
+          html += '<strong>Error:</strong> ' + error.message + '<br>';
+          html += '<strong>Status:</strong> ' + (error.status || 'N/A') + '<br><br>';
+
+          if (error.message.includes('Invalid API key')) {
+            html += '<strong>🔑 THE PROBLEM: Your API key is invalid!</strong><br><br>';
+            html += 'This is THE issue. Your .env file has the wrong VITE_SUPABASE_ANON_KEY.<br><br>';
+            html += '<strong>How to fix:</strong><br>';
+            html += '1. Open: https://supabase.com/dashboard/project/bfqvzxczmvfteqbhgyvx/settings/api<br>';
+            html += '2. Copy "anon public" key<br>';
+            html += '3. Update .env: VITE_SUPABASE_ANON_KEY=your-key-here<br>';
+            html += '4. Restart: npm run dev<br>';
+            html += '5. Clear browser cache<br>';
+          } else if (error.message.includes('already registered')) {
+            html += '<strong>📧 Email already exists!</strong><br>';
+            html += 'Try signing in instead, or use a different email.';
+          } else if (error.message.includes('rate limit')) {
+            html += '<strong>⏱️ Rate limited!</strong><br>';
+            html += 'Wait 60 seconds and try again.';
+          } else {
+            html += '<strong>Details:</strong><br>';
+            html += '<div class="code">' + JSON.stringify(error, null, 2) + '</div>';
+          }
+
+          html += '</div>';
+          resultDiv.innerHTML = html;
+        } else if (data.user) {
+          let html = '<div class="success result"><strong>✅ SIGNUP WORKED!</strong><br><br>';
+          html += '<strong>User created:</strong><br>';
+          html += '• Email: ' + data.user.email + '<br>';
+          html += '• ID: ' + data.user.id + '<br>';
+          html += '• Confirmed: ' + (data.user.email_confirmed_at ? 'Yes ✅' : 'No ⚠️') + '<br>';
+          html += '• Session: ' + (data.session ? 'Active ✅' : 'None ⚠️') + '<br><br>';
+
+          if (data.session) {
+            html += '<strong>✅ Perfect! Email confirmation is disabled.</strong><br>';
+            html += 'User can log in immediately.';
+          } else {
+            html += '<strong>⚠️ Email confirmation is enabled.</strong><br>';
+            html += 'User must click email link to activate account.<br><br>';
+            html += '<strong>To disable:</strong><br>';
+            html += '1. Supabase Dashboard → Authentication → Providers<br>';
+            html += '2. Click "Email"<br>';
+            html += '3. Turn OFF "Confirm email"<br>';
+            html += '4. Save';
+          }
+
+          html += '<br><br><div class="code">' + JSON.stringify(data, null, 2) + '</div>';
+          html += '</div>';
+          resultDiv.innerHTML = html;
+        } else {
+          resultDiv.innerHTML = '<div class="error result">⚠️ Unexpected: No user data<br><br><div class="code">' + JSON.stringify(data, null, 2) + '</div></div>';
+        }
+      } catch (err) {
+        console.error('💥 Error:', err);
+        resultDiv.innerHTML = '<div class="error result"><strong>❌ CRITICAL ERROR!</strong><br><br>' + err.message + '<br><br><div class="code">' + err.stack + '</div></div>';
+      }
+    }
+  </script>
+</body>
+</html>

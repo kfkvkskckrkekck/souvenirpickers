@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cookie Policy Test - SouvenirPickers</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f9fafb;
+    }
+    h1 {
+      color: #1f2937;
+      margin-bottom: 30px;
+    }
+    .test-section {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .test-result {
+      padding: 10px;
+      border-radius: 4px;
+      margin-top: 10px;
+    }
+    .success {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    .info {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    button:hover {
+      background: #1d4ed8;
+    }
+    .button-secondary {
+      background: #6b7280;
+    }
+    .button-secondary:hover {
+      background: #4b5563;
+    }
+  </style>
+</head>
+<body>
+  <h1>🍪 Cookie Policy Test</h1>
+
+  <div class="test-section">
+    <h2>Cookie Banner Test</h2>
+    <p>Test the cookie consent banner functionality</p>
+
+    <button onclick="clearCookieConsent()">Clear Cookie Consent</button>
+    <button onclick="checkCookieConsent()" class="button-secondary">Check Current Status</button>
+
+    <div id="banner-status" class="test-result info" style="margin-top: 15px;">
+      Click "Check Current Status" to see if consent is stored
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h2>What to Test</h2>
+    <ol>
+      <li><strong>Clear Consent:</strong> Click "Clear Cookie Consent" to reset the banner</li>
+      <li><strong>View Banner:</strong> Go to the main app to see the cookie banner appear</li>
+      <li><strong>Accept Cookies:</strong> Click "Accept All" on the banner</li>
+      <li><strong>Check Storage:</strong> Return here and click "Check Current Status"</li>
+      <li><strong>Verify Policy:</strong> Navigate to the Cookie Policy page from the footer</li>
+    </ol>
+  </div>
+
+  <div class="test-section">
+    <h2>Cookie Policy Features</h2>
+    <ul>
+      <li>✅ Cookie banner with accept/decline options</li>
+      <li>✅ Persistent storage of user preference</li>
+      <li>✅ Comprehensive cookie policy page</li>
+      <li>✅ Links in footer and banner</li>
+      <li>✅ Detailed explanation of cookie types</li>
+      <li>✅ Third-party cookie disclosure</li>
+      <li>✅ Browser-specific instructions</li>
+      <li>✅ GDPR-compliant design</li>
+    </ul>
+  </div>
+
+  <div class="test-section">
+    <h2>Cookie Types Covered</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+      <div style="padding: 10px; background: #f3f4f6; border-radius: 4px;">
+        <strong>🛡️ Essential</strong><br>
+        <small>Authentication, security</small>
+      </div>
+      <div style="padding: 10px; background: #f3f4f6; border-radius: 4px;">
+        <strong>⚙️ Functional</strong><br>
+        <small>Preferences, settings</small>
+      </div>
+      <div style="padding: 10px; background: #f3f4f6; border-radius: 4px;">
+        <strong>📊 Analytics</strong><br>
+        <small>Usage tracking</small>
+      </div>
+      <div style="padding: 10px; background: #f3f4f6; border-radius: 4px;">
+        <strong>🌐 Third-Party</strong><br>
+        <small>Stripe, Supabase</small>
+      </div>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h2>Quick Links</h2>
+    <button onclick="window.location.href='/'">Go to Main App</button>
+    <button onclick="window.location.href='/#/cookie-policy'" class="button-secondary">View Cookie Policy</button>
+  </div>
+
+  <script>
+    function clearCookieConsent() {
+      localStorage.removeItem('cookieConsent');
+      document.getElementById('banner-status').className = 'test-result success';
+      document.getElementById('banner-status').innerHTML = '✅ Cookie consent cleared! Go to the main app to see the banner.';
+    }
+
+    function checkCookieConsent() {
+      const consent = localStorage.getItem('cookieConsent');
+      const statusDiv = document.getElementById('banner-status');
+
+      if (consent) {
+        statusDiv.className = 'test-result info';
+        statusDiv.innerHTML = `📝 Current Status: <strong>${consent}</strong><br><small>User has ${consent} cookies</small>`;
+      } else {
+        statusDiv.className = 'test-result info';
+        statusDiv.innerHTML = '⚠️ No consent stored. The banner should appear on the main app.';
+      }
+    }
+
+    // Check status on page load
+    window.addEventListener('load', checkCookieConsent);
+  </script>
+</body>
+</html>

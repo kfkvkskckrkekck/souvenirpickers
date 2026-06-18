@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Support Ticket Email</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
+    button { background: #2563eb; color: white; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; }
+    button:hover { background: #1d4ed8; }
+    .result { margin-top: 20px; padding: 15px; border-radius: 8px; }
+    .success { background: #d1fae5; border: 1px solid #10b981; }
+    .error { background: #fee2e2; border: 1px solid #ef4444; }
+    pre { background: #f3f4f6; padding: 10px; border-radius: 4px; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h1>Test Support Ticket Email</h1>
+  <p>Click the button below to test sending a support ticket email notification.</p>
+
+  <button onclick="testEmail()">Send Test Support Ticket Email</button>
+
+  <div id="result"></div>
+
+  <script>
+    const SUPABASE_URL = 'https://bfqvzxczmvfteqbhgyvx.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmcXZ6eGN6bXZmdGVxYmhneXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ0MTAxODIsImV4cCI6MjA3OTk4NjE4Mn0.2kgZ_VfgN42cs3B-40snDRgThCOVNIJ0BGQ_gdhbzy0';
+
+    async function testEmail() {
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = '<p>Sending test email...</p>';
+
+      try {
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/send-email-notification`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+          },
+          body: JSON.stringify({
+            to: 'support@souvenirpickers.com',
+            subject: 'Test Support Ticket Email',
+            type: 'support_ticket',
+            data: {
+              ticket_id: 'test-123',
+              user_name: 'Test User',
+              user_email: 'testuser@example.com',
+              subject: 'Test Issue',
+              category: 'technical',
+              message: 'This is a test support ticket message to verify email delivery.',
+              priority: 'medium',
+              created_at: new Date().toISOString()
+            }
+          })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          resultDiv.className = 'result success';
+          resultDiv.innerHTML = `
+            <h3>✅ Success!</h3>
+            <p>Email sent successfully to support@souvenirpickers.com</p>
+            <pre>${JSON.stringify(data, null, 2)}</pre>
+          `;
+        } else {
+          resultDiv.className = 'result error';
+          resultDiv.innerHTML = `
+            <h3>❌ Error</h3>
+            <p>Failed to send email</p>
+            <p><strong>Status:</strong> ${response.status}</p>
+            <pre>${JSON.stringify(data, null, 2)}</pre>
+          `;
+        }
+      } catch (error) {
+        resultDiv.className = 'result error';
+        resultDiv.innerHTML = `
+          <h3>❌ Error</h3>
+          <p>${error.message}</p>
+        `;
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self';
+      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://m.stripe.network;
+      frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://m.stripe.network;
+      connect-src 'self' https://api.stripe.com https://m.stripe.network https://m.stripe.com https://*.supabase.co wss://*.supabase.co;
+      style-src 'self' 'unsafe-inline';
+      img-src 'self' data: https: blob:;
+      media-src 'self' https://*.supabase.co blob: data:;
+      font-src 'self' data:;
+      object-src 'none';
+      base-uri 'self';
+      form-action 'self';
+    ">
+
+    <title>SouvenirPickers - Global Souvenir Marketplace | Authentic Souvenirs Worldwide</title>
+    <meta name="description" content="SouvenirPickers connects you with local pickers worldwide to deliver authentic souvenirs from any destination. Browse unique gifts, find trusted pickers, and get souvenirs from around the globe. Start your 30-day free trial today!" />
+    <meta name="keywords" content="souvenirs, travel marketplace, authentic gifts, global shopping, travel souvenirs, local pickers, worldwide delivery, unique gifts, international souvenirs, travel shopping, souvenir pickers" />
+    <meta name="author" content="SouvenirPickers" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <link rel="canonical" href="https://souvenirpickers.com" />
+
+    <link rel="dns-prefetch" href="https://js.stripe.com" />
+    <link rel="dns-prefetch" href="https://api.stripe.com" />
+    <link rel="dns-prefetch" href="https://m.stripe.network" />
+    <link rel="preconnect" href="https://js.stripe.com" crossorigin />
+    <link rel="preconnect" href="https://api.stripe.com" crossorigin />
+    <link rel="preconnect" href="https://m.stripe.network" crossorigin />
+
+    <meta property="og:site_name" content="SouvenirPickers" />
+    <meta property="og:title" content="SouvenirPickers - Global Souvenir Marketplace | Authentic Souvenirs Worldwide" />
+    <meta property="og:description" content="Connect with local pickers worldwide to get authentic souvenirs delivered from any destination. 30-day free trial, then just €5/month." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://souvenirpickers.com" />
+    <meta property="og:image" content="https://images.pexels.com/photos/5632403/pexels-photo-5632403.jpeg" />
+    <meta property="og:image:secure_url" content="https://images.pexels.com/photos/5632403/pexels-photo-5632403.jpeg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="SouvenirPickers - Authentic souvenirs from around the world" />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="SouvenirPickers - Global Souvenir Marketplace" />
+    <meta name="twitter:description" content="Get authentic souvenirs from anywhere in the world. Connect with local pickers worldwide. 30-day free trial!" />
+    <meta name="twitter:site" content="@souvenirpickers" />
+    <meta name="twitter:creator" content="@souvenirpickers" />
+    <meta name="twitter:image" content="https://images.pexels.com/photos/5632403/pexels-photo-5632403.jpeg" />
+    <meta name="twitter:image:alt" content="SouvenirPickers - Connect with local pickers worldwide" />
+
+    <meta name="theme-color" content="#2563eb" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="SouvenirPickers" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+
+    <script src="https://js.stripe.com/v3/"></script>
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "SouvenirPickers",
+      "url": "https://souvenirpickers.com",
+      "description": "Global marketplace connecting you with local pickers to get authentic souvenirs from around the world",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://souvenirpickers.com/search?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "SouvenirPickers",
+      "url": "https://souvenirpickers.com",
+      "logo": "https://souvenirpickers.com/logo.png",
+      "sameAs": [
+        "https://www.facebook.com/souvenirpickers",
+        "https://twitter.com/souvenirpickers",
+        "https://www.instagram.com/souvenirpickers",
+        "https://www.linkedin.com/company/souvenirpickers",
+        "https://www.youtube.com/@souvenirpickers"
+      ],
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "Customer Service",
+        "availableLanguage": ["English"]
+      }
+    }
+    </script>
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Service",
+      "name": "SouvenirPickers Marketplace",
+      "description": "Connect with local pickers worldwide to purchase and deliver authentic souvenirs from any destination",
+      "provider": {
+        "@type": "Organization",
+        "name": "SouvenirPickers"
+      },
+      "areaServed": "Worldwide",
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": "Souvenir Listings",
+        "itemListElement": [
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Product",
+              "name": "Authentic Global Souvenirs"
+            }
+          }
+        ]
+      },
+      "offers": {
+        "@type": "Offer",
+        "price": "5.00",
+        "priceCurrency": "EUR",
+        "description": "Monthly subscription after 30-day free trial"
+      }
+    }
+    </script>
+    <style>
+      #loading-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: white;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+      }
+      #loading-screen .spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid #e5e7eb;
+        border-top-color: #2563eb;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      #loading-screen p {
+        margin-top: 20px;
+        color: #6b7280;
+        font-family: system-ui, -apple-system, sans-serif;
+        font-size: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="loading-screen">
+      <div class="spinner"></div>
+      <p>Loading SouvenirPickers...</p>
+    </div>
+    <div id="root"></div>
+    <script>
+      // Fallback to hide loader after 5 seconds if React doesn't load
+      setTimeout(() => {
+        const loader = document.getElementById('loading-screen');
+        if (loader && loader.style.display !== 'none') {
+          console.log('Fallback: hiding loading screen');
+          loader.style.display = 'none';
+        }
+      }, 5000);
+
+      // Log any errors
+      window.addEventListener('error', (e) => {
+        console.error('Global error:', e.error);
+      });
+
+      window.addEventListener('unhandledrejection', (e) => {
+        console.error('Unhandled rejection:', e.reason);
+      });
+    </script>
+    <script>
+      // Force clear service workers and caches
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+          registrations.forEach(reg => reg.unregister());
+        });
+      }
+      if ('caches' in window) {
+        caches.keys().then(names => {
+          names.forEach(name => caches.delete(name));
+        });
+      }
+    </script>
+    <script type="module" src="/src/main.tsx?v=20260220-1540"></script>
+  </body>
+</html>

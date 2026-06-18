@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Signup API Direct</title>
+</head>
+<body>
+    <h1>Direct API Signup Test</h1>
+    <button onclick="testSignup()">Test Signup</button>
+    <pre id="result"></pre>
+
+    <script>
+        async function testSignup() {
+            const result = document.getElementById('result');
+            result.textContent = 'Testing...';
+
+            try {
+                const response = await fetch('https://bfqvzxczmvfteqbhgyvx.supabase.co/auth/v1/signup', {
+                    method: 'POST',
+                    headers: {
+                        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmcXZ6eGN6bXZmdGVxYmhneXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ0MTAxODIsImV4cCI6MjA3OTk4NjE4Mn0.2kgZ_VfgN42cs3B-40snDRgThCOVNIJ0BGQ_gdhbzy0',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: `test${Date.now()}@example.com`,
+                        password: 'Test123456!',
+                        data: {
+                            full_name: 'Test User',
+                            user_type: 'picker'
+                        }
+                    })
+                });
+
+                const data = await response.json();
+                result.textContent = JSON.stringify(data, null, 2);
+
+                console.log('Response status:', response.status);
+                console.log('Response data:', data);
+
+            } catch (error) {
+                result.textContent = 'Error: ' + error.message;
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>

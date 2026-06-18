@@ -1,0 +1,61 @@
+[build]
+publish = "dist"
+command = "npx vite build"
+
+[build.environment]
+NODE_VERSION = "18"
+VITE_SUPABASE_URL = "https://bfqvzxczmvfteqbhgyvx.supabase.co"
+VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmcXZ6eGN6bXZmdGVxYmhneXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ0MTAxODIsImV4cCI6MjA3OTk4NjE4Mn0.2kgZ_VfgN42cs3B-40snDRgThCOVNIJ0BGQ_gdhbzy0"
+VITE_STRIPE_PUBLISHABLE_KEY = "pk_live_51SI5wQFlPbAiVNx2hO266AapZfZLrCQZZOShtSjw3X4U0A7VyzRgMSBEx81psE24t7rnAU4CQVQc3uFoEniyFe4g00HbtBusTH"
+
+[[redirects]]
+from = "https://www.souvenirpickers.com/*"
+to = "https://souvenirpickers.com/:splat"
+status = 301
+force = true
+
+[[redirects]]
+from = "/*.html"
+to = "/:splat"
+status = 200
+
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200
+
+[[headers]]
+for = "/*"
+
+[headers.values]
+X-Frame-Options = "SAMEORIGIN"
+X-XSS-Protection = "1; mode=block"
+X-Content-Type-Options = "nosniff"
+Referrer-Policy = "strict-origin-when-cross-origin"
+Access-Control-Allow-Origin = "*"
+Cache-Control = "public, max-age=0, must-revalidate"
+Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://m.stripe.network; frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://m.stripe.network; connect-src 'self' https://api.stripe.com https://m.stripe.network https://m.stripe.com https://*.supabase.co wss://*.supabase.co; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; media-src 'self' https://*.supabase.co blob: data:; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self';"
+
+[[headers]]
+for = "/assets/*"
+
+[headers.values]
+Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+for = "/*.js"
+
+[headers.values]
+Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+for = "/*.css"
+
+[headers.values]
+Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+for = "/sw.js"
+
+[headers.values]
+Cache-Control = "no-cache, no-store, must-revalidate"

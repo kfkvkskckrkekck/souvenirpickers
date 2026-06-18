@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Email Functionality</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      max-width: 600px;
+      width: 100%;
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 28px;
+    }
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+    .test-section {
+      margin-bottom: 30px;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 12px;
+      border: 2px solid #e9ecef;
+    }
+    .test-section h2 {
+      color: #495057;
+      font-size: 18px;
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #495057;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    input[type="email"] {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #ced4da;
+      border-radius: 8px;
+      font-size: 16px;
+      margin-bottom: 15px;
+    }
+    input[type="email"]:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    button:hover {
+      transform: translateY(-2px);
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    .success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+      margin-bottom: 20px;
+      padding: 15px;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s ease-in-out infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 Test Email Functionality</h1>
+    <p class="subtitle">Test password reset and magic link emails</p>
+
+    <div class="info">
+      <strong>✅ Your app is now configured to send emails via SMTP!</strong>
+      <br><br>
+      Use this page to test if emails are being sent correctly.
+    </div>
+
+    <div class="test-section">
+      <h2>🔐 Test Password Reset Email</h2>
+      <label for="reset-email">Enter your email:</label>
+      <input type="email" id="reset-email" placeholder="your@email.com" required>
+      <button onclick="testPasswordReset()" id="reset-btn">Send Password Reset Email</button>
+      <div id="reset-result"></div>
+    </div>
+
+    <div class="test-section">
+      <h2>✨ Test Magic Link Email</h2>
+      <label for="magic-email">Enter your email:</label>
+      <input type="email" id="magic-email" placeholder="your@email.com" required>
+      <button onclick="testMagicLink()" id="magic-btn">Send Magic Link Email</button>
+      <div id="magic-result"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    const SUPABASE_URL = 'https://bfqvzxczmvfteqbhgyvx.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmcXZ6eGN6bXZmdGVxYmhneXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ0MTAxODIsImV4cCI6MjA3OTk4NjE4Mn0.2kgZ_VfgN42cs3B-40snDRgThCOVNIJ0BGQ_gdhbzy0';
+
+    window.testPasswordReset = async function() {
+      const email = document.getElementById('reset-email').value;
+      const resultDiv = document.getElementById('reset-result');
+      const btn = document.getElementById('reset-btn');
+
+      if (!email) {
+        resultDiv.innerHTML = '<div class="result error">Please enter an email address</div>';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loading"></span> Sending...';
+      resultDiv.innerHTML = '';
+
+      try {
+        console.log('Testing password reset for:', email);
+
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/send-password-reset-email`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
+            email: email,
+            redirectTo: window.location.origin,
+          }),
+        });
+
+        const data = await response.json();
+        console.log('Response:', data);
+
+        if (response.ok) {
+          resultDiv.innerHTML = `
+            <div class="result success">
+              <strong>✅ Success!</strong><br>
+              Password reset email sent to ${email}<br>
+              Check your inbox (and spam folder)!
+            </div>
+          `;
+        } else {
+          resultDiv.innerHTML = `
+            <div class="result error">
+              <strong>❌ Error:</strong><br>
+              ${data.error || 'Failed to send email'}<br><br>
+              <small>Check browser console for details</small>
+            </div>
+          `;
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        resultDiv.innerHTML = `
+          <div class="result error">
+            <strong>❌ Error:</strong><br>
+            ${error.message}<br><br>
+            <small>Check browser console for details</small>
+          </div>
+        `;
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Send Password Reset Email';
+      }
+    };
+
+    window.testMagicLink = async function() {
+      const email = document.getElementById('magic-email').value;
+      const resultDiv = document.getElementById('magic-result');
+      const btn = document.getElementById('magic-btn');
+
+      if (!email) {
+        resultDiv.innerHTML = '<div class="result error">Please enter an email address</div>';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loading"></span> Sending...';
+      resultDiv.innerHTML = '';
+
+      try {
+        console.log('Testing magic link for:', email);
+
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/send-magic-link-recovery`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
+            email: email,
+          }),
+        });
+
+        const data = await response.json();
+        console.log('Response:', data);
+
+        if (response.ok) {
+          resultDiv.innerHTML = `
+            <div class="result success">
+              <strong>✅ Success!</strong><br>
+              Magic link email sent to ${email}<br>
+              Check your inbox (and spam folder)!
+            </div>
+          `;
+        } else {
+          resultDiv.innerHTML = `
+            <div class="result error">
+              <strong>❌ Error:</strong><br>
+              ${data.error || 'Failed to send email'}<br><br>
+              <small>Check browser console for details</small>
+            </div>
+          `;
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        resultDiv.innerHTML = `
+          <div class="result error">
+            <strong>❌ Error:</strong><br>
+            ${error.message}<br><br>
+            <small>Check browser console for details</small>
+          </div>
+        `;
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Send Magic Link Email';
+      }
+    };
+  </script>
+</body>
+</html>

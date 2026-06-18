@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Bank Account Save</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 5px;
+      color: #555;
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      font-size: 14px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    button {
+      background: #22c55e;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+    button:hover {
+      background: #16a34a;
+    }
+    button:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+    .log {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 4px;
+      padding: 15px;
+      margin-top: 20px;
+      max-height: 400px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    .log-entry {
+      margin-bottom: 8px;
+      padding: 4px;
+    }
+    .log-error {
+      color: #dc2626;
+      background: #fef2f2;
+    }
+    .log-success {
+      color: #16a34a;
+      background: #f0fdf4;
+    }
+    .log-info {
+      color: #2563eb;
+    }
+    .status {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+      display: none;
+    }
+    .status.error {
+      background: #fef2f2;
+      color: #dc2626;
+      display: block;
+    }
+    .status.success {
+      background: #f0fdf4;
+      color: #16a34a;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 Test Bank Account Save</h1>
+    <p>This page tests saving and loading bank account information from Supabase.</p>
+
+    <div id="status" class="status"></div>
+
+    <div class="form-group">
+      <label>Account Holder Name</label>
+      <input type="text" id="accountName" placeholder="John Doe" value="Test User">
+    </div>
+
+    <div class="form-group">
+      <label>IBAN / Account Number</label>
+      <input type="text" id="iban" placeholder="GB29NWBK60161331926819" value="GB29NWBK60161331926819">
+    </div>
+
+    <div class="form-group">
+      <label>Bank Name</label>
+      <input type="text" id="bankName" placeholder="Test Bank" value="Test Bank">
+    </div>
+
+    <div class="form-group">
+      <label>SWIFT/BIC Code (8-11 uppercase chars)</label>
+      <input type="text" id="swift" placeholder="NWBKGB2L" value="NWBKGB2L" maxlength="11">
+    </div>
+
+    <div class="form-group">
+      <label>Country</label>
+      <input type="text" id="country" placeholder="United Kingdom" value="United Kingdom">
+    </div>
+
+    <div class="form-group">
+      <label>Currency (3 chars)</label>
+      <input type="text" id="currency" placeholder="GBP" value="GBP" maxlength="3">
+    </div>
+
+    <button onclick="testSave()" id="saveBtn">💾 Test Save</button>
+    <button onclick="testLoad()" id="loadBtn">📥 Test Load</button>
+    <button onclick="testDelete()" id="deleteBtn" style="background: #dc2626;">🗑️ Delete Test Data</button>
+
+    <div class="log" id="log"></div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://bfqvzxczmvfteqbhgyvx.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmcXZ6eGN6bXZmdGVxYmhneXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjg0MjU1MDUsImV4cCI6MjA0NDAwMTUwNX0.YdQ3eN_QXcPM3xqE1ynDH1rMnK3cGf1VjXXHKPKfwWM';
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    function log(message, type = 'info') {
+      const logDiv = document.getElementById('log');
+      const entry = document.createElement('div');
+      entry.className = `log-entry log-${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      logDiv.appendChild(entry);
+      logDiv.scrollTop = logDiv.scrollHeight;
+      console.log(message);
+    }
+
+    function showStatus(message, type) {
+      const statusDiv = document.getElementById('status');
+      statusDiv.textContent = message;
+      statusDiv.className = `status ${type}`;
+    }
+
+    async function testSave() {
+      const saveBtn = document.getElementById('saveBtn');
+      saveBtn.disabled = true;
+      log('🚀 Starting test save...', 'info');
+
+      try {
+        // Get current user
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError) throw userError;
+        if (!user) {
+          showStatus('❌ You must be logged in to test. Please log in first.', 'error');
+          log('❌ No user logged in', 'error');
+          return;
+        }
+
+        log(`✅ User ID: ${user.id}`, 'success');
+
+        // Get form values
+        const accountName = document.getElementById('accountName').value.trim();
+        const iban = document.getElementById('iban').value.replace(/\s/g, '').toUpperCase();
+        const bankName = document.getElementById('bankName').value.trim();
+        const swift = document.getElementById('swift').value.toUpperCase().trim();
+        const country = document.getElementById('country').value.trim();
+        const currency = document.getElementById('currency').value.toUpperCase().trim();
+
+        // Validate
+        log('📋 Validating inputs...', 'info');
+        if (!accountName || accountName.length < 2) {
+          throw new Error('Account holder name must be at least 2 characters');
+        }
+        if (!iban || iban.length < 15) {
+          throw new Error('IBAN must be at least 15 characters');
+        }
+        if (!bankName || bankName.length < 2) {
+          throw new Error('Bank name must be at least 2 characters');
+        }
+        if (!swift || !/^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$/.test(swift)) {
+          throw new Error('SWIFT code must be 8-11 uppercase characters (e.g., NWBKGB2L)');
+        }
+        if (!country || country.length < 2) {
+          throw new Error('Country must be at least 2 characters');
+        }
+        if (!currency || currency.length !== 3) {
+          throw new Error('Currency must be exactly 3 characters');
+        }
+
+        log('✅ Validation passed', 'success');
+
+        const last4 = iban.slice(-4);
+
+        // Check if record exists
+        log('🔍 Checking for existing record...', 'info');
+        const { data: existing, error: checkError } = await supabase
+          .from('picker_payout_info')
+          .select('id')
+          .eq('picker_id', user.id)
+          .maybeSingle();
+
+        if (checkError) {
+          log(`❌ Check error: ${checkError.message}`, 'error');
+          throw checkError;
+        }
+
+        if (existing) {
+          log(`📝 Found existing record: ${existing.id}`, 'info');
+          log('🔄 Updating existing record...', 'info');
+
+          const { data, error } = await supabase
+            .from('picker_payout_info')
+            .update({
+              bank_account_name: accountName,
+              bank_account_number: iban,
+              bank_account_last4: last4,
+              bank_name: bankName,
+              bank_swift_code: swift,
+              country: country,
+              currency: currency,
+              is_verified: false,
+              account_status: 'pending',
+              payouts_enabled: false,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existing.id)
+            .select()
+            .single();
+
+          if (error) throw error;
+          log('✅ Update successful!', 'success');
+          log(`📦 Updated data: ${JSON.stringify(data, null, 2)}`, 'success');
+        } else {
+          log('➕ No existing record, creating new...', 'info');
+
+          const { data, error } = await supabase
+            .from('picker_payout_info')
+            .insert({
+              picker_id: user.id,
+              bank_account_name: accountName,
+              bank_account_number: iban,
+              bank_account_last4: last4,
+              bank_name: bankName,
+              bank_swift_code: swift,
+              country: country,
+              currency: currency,
+              is_verified: false,
+              account_status: 'pending',
+              payouts_enabled: false
+            })
+            .select()
+            .single();
+
+          if (error) throw error;
+          log('✅ Insert successful!', 'success');
+          log(`📦 Inserted data: ${JSON.stringify(data, null, 2)}`, 'success');
+        }
+
+        showStatus('✅ Bank account saved successfully!', 'success');
+
+        // Auto-load after save
+        setTimeout(() => testLoad(), 1000);
+
+      } catch (error) {
+        log(`❌ Error: ${error.message}`, 'error');
+        showStatus(`❌ Error: ${error.message}`, 'error');
+      } finally {
+        saveBtn.disabled = false;
+      }
+    }
+
+    async function testLoad() {
+      const loadBtn = document.getElementById('loadBtn');
+      loadBtn.disabled = true;
+      log('📥 Loading payout info...', 'info');
+
+      try {
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError) throw userError;
+        if (!user) {
+          showStatus('❌ You must be logged in to test. Please log in first.', 'error');
+          log('❌ No user logged in', 'error');
+          return;
+        }
+
+        log(`🔍 Querying for user: ${user.id}`, 'info');
+
+        const { data, error } = await supabase
+          .from('picker_payout_info')
+          .select('*')
+          .eq('picker_id', user.id)
+          .maybeSingle();
+
+        if (error) {
+          log(`❌ Load error: ${error.message}`, 'error');
+          throw error;
+        }
+
+        if (data) {
+          log('✅ Data loaded successfully!', 'success');
+          log(`📦 Loaded data: ${JSON.stringify(data, null, 2)}`, 'success');
+          showStatus(`✅ Bank account loaded! Bank: ${data.bank_name}, Last 4: ${data.bank_account_last4}`, 'success');
+        } else {
+          log('ℹ️ No payout info found', 'info');
+          showStatus('ℹ️ No bank account data found', 'error');
+        }
+      } catch (error) {
+        log(`❌ Error: ${error.message}`, 'error');
+        showStatus(`❌ Error: ${error.message}`, 'error');
+      } finally {
+        loadBtn.disabled = false;
+      }
+    }
+
+    async function testDelete() {
+      if (!confirm('Are you sure you want to delete the test data?')) return;
+
+      const deleteBtn = document.getElementById('deleteBtn');
+      deleteBtn.disabled = true;
+      log('🗑️ Deleting test data...', 'info');
+
+      try {
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError) throw userError;
+        if (!user) {
+          showStatus('❌ You must be logged in to test. Please log in first.', 'error');
+          log('❌ No user logged in', 'error');
+          return;
+        }
+
+        const { error } = await supabase
+          .from('picker_payout_info')
+          .delete()
+          .eq('picker_id', user.id);
+
+        if (error) throw error;
+
+        log('✅ Test data deleted successfully!', 'success');
+        showStatus('✅ Test data deleted', 'success');
+      } catch (error) {
+        log(`❌ Error: ${error.message}`, 'error');
+        showStatus(`❌ Error: ${error.message}`, 'error');
+      } finally {
+        deleteBtn.disabled = false;
+      }
+    }
+
+    // Auto-load on page load
+    window.addEventListener('load', () => {
+      log('🌐 Page loaded, ready to test', 'info');
+      testLoad();
+    });
+  </script>
+</body>
+</html>
