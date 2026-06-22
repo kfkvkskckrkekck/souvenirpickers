@@ -45,32 +45,6 @@ export default function OrderConfirmation({
       if (rpcError) throw rpcError;
 
       if (data?.success) {
-        // Get session for edge function authentication
-        const { data: { session } } = await supabase.auth.getSession();
-
-        // If delivery was confirmed and we have escrow info, trigger the payout
-        if (data.escrow_id && session) {
-          // Call the edge function to process the actual Stripe transfer
-          // This runs asynchronously - we don't wait for it
-          fetch(
-            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-picker-payout`,
-            {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${session.access_token}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                escrowId: data.escrow_id,
-                pickerId: data.picker_id || data.released_to,
-              }),
-            }
-          ).catch(err => {
-            // Log but don't fail - the escrow is marked for processing
-            console.error('Payout processing error (non-blocking):', err);
-          });
-        }
-
         onConfirmed?.();
       } else {
         setError(data?.error || 'Failed to confirm delivery');

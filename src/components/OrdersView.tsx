@@ -371,27 +371,6 @@ export function OrdersView({ onViewChange, initialOrderId }: OrdersViewProps = {
       if (error) throw error;
 
       if (data?.success) {
-        // If there's a shipping amount to release, call the payout edge function
-        if (data.shipping_amount && data.shipping_amount > 0 && data.escrow_id) {
-          fetch(
-            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-picker-payout`,
-            {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${session.access_token}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                escrowId: data.escrow_id,
-                pickerId: profile.id,
-                releaseType: 'shipping_only'
-              }),
-            }
-          ).catch(err => {
-            console.error('Shipping payout processing error (non-blocking):', err);
-          });
-        }
-
         setMarkingShipped(null);
         setTrackingNumber('');
         await loadOrders();
