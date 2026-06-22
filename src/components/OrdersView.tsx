@@ -1154,7 +1154,7 @@ export function OrdersView({ onViewChange, initialOrderId }: OrdersViewProps = {
 
                     {profile?.user_type === 'client' && order.status === 'shipped' && (
                       <>
-                        {order.escrow?.status === 'held' && (
+                        {!order.goods_confirmed && (
                           <button
                             onClick={() => confirmDelivery(order.id)}
                             className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
