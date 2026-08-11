@@ -27,6 +27,41 @@ const COUNTRIES = [
   'Tajikistan', 'Afghanistan', 'Iran', 'Iraq', 'Syria', 'Yemen', 'Oman'
 ].sort();
 
+const COUNTRY_NAME_TO_CODE: Record<string, string> = {
+  'United States': 'US', 'Canada': 'CA', 'United Kingdom': 'GB', 'Australia': 'AU',
+  'Germany': 'DE', 'France': 'FR', 'Italy': 'IT', 'Spain': 'ES', 'Netherlands': 'NL',
+  'Belgium': 'BE', 'Switzerland': 'CH', 'Austria': 'AT', 'Sweden': 'SE', 'Norway': 'NO',
+  'Denmark': 'DK', 'Finland': 'FI', 'Ireland': 'IE', 'Portugal': 'PT', 'Greece': 'GR',
+  'Poland': 'PL', 'Czech Republic': 'CZ', 'Hungary': 'HU', 'Romania': 'RO', 'Bulgaria': 'BG',
+  'Croatia': 'HR', 'Slovenia': 'SI', 'Slovakia': 'SK', 'Lithuania': 'LT', 'Latvia': 'LV',
+  'Estonia': 'EE', 'Luxembourg': 'LU', 'Malta': 'MT', 'Cyprus': 'CY', 'Japan': 'JP',
+  'South Korea': 'KR', 'Singapore': 'SG', 'New Zealand': 'NZ', 'Mexico': 'MX', 'Brazil': 'BR',
+  'Argentina': 'AR', 'Chile': 'CL', 'Colombia': 'CO', 'Peru': 'PE', 'Venezuela': 'VE',
+  'Ecuador': 'EC', 'Uruguay': 'UY', 'Paraguay': 'PY', 'Bolivia': 'BO', 'Costa Rica': 'CR',
+  'Panama': 'PA', 'Guatemala': 'GT', 'Honduras': 'HN', 'El Salvador': 'SV', 'Nicaragua': 'NI',
+  'Dominican Republic': 'DO', 'Puerto Rico': 'PR', 'Jamaica': 'JM', 'Trinidad and Tobago': 'TT',
+  'Bahamas': 'BS', 'Barbados': 'BB', 'Iceland': 'IS', 'Turkey': 'TR', 'Israel': 'IL',
+  'United Arab Emirates': 'AE', 'Saudi Arabia': 'SA', 'Qatar': 'QA', 'Kuwait': 'KW',
+  'Bahrain': 'BH', 'Oman': 'OM', 'Jordan': 'JO', 'Lebanon': 'LB', 'Egypt': 'EG',
+  'Morocco': 'MA', 'Tunisia': 'TN', 'Algeria': 'DZ', 'South Africa': 'ZA', 'Kenya': 'KE',
+  'Nigeria': 'NG', 'Ghana': 'GH', 'Ethiopia': 'ET', 'Tanzania': 'TZ', 'Uganda': 'UG',
+  'Rwanda': 'RW', 'Senegal': 'SN', 'Ivory Coast': 'CI', 'Cameroon': 'CM', 'Angola': 'AO',
+  'Mozambique': 'MZ', 'Zambia': 'ZM', 'Zimbabwe': 'ZW', 'Botswana': 'BW', 'Namibia': 'NA',
+  'Mauritius': 'MU', 'Seychelles': 'SC', 'India': 'IN', 'Pakistan': 'PK', 'Bangladesh': 'BD',
+  'Sri Lanka': 'LK', 'Nepal': 'NP', 'Bhutan': 'BT', 'Maldives': 'MV', 'Thailand': 'TH',
+  'Vietnam': 'VN', 'Malaysia': 'MY', 'Indonesia': 'ID', 'Philippines': 'PH', 'Cambodia': 'KH',
+  'Laos': 'LA', 'Myanmar': 'MM', 'Brunei': 'BN', 'China': 'CN', 'Hong Kong': 'HK',
+  'Taiwan': 'TW', 'Macau': 'MO', 'Mongolia': 'MN', 'Kazakhstan': 'KZ', 'Uzbekistan': 'UZ',
+  'Turkmenistan': 'TM', 'Kyrgyzstan': 'KG', 'Tajikistan': 'TJ', 'Afghanistan': 'AF',
+  'Iran': 'IR', 'Iraq': 'IQ', 'Syria': 'SY', 'Yemen': 'YE',
+};
+
+function toCountryCode(name: string): string {
+  if (!name) return '';
+  if (/^[A-Z]{2}$/.test(name.trim().toUpperCase())) return name.trim().toUpperCase();
+  return COUNTRY_NAME_TO_CODE[name.trim()] || '';
+}
+
 type ShippingRate = {
   id: number;
   name: string;
@@ -112,7 +147,7 @@ export function OrderCheckoutModal({ listing, onClose, onOrderCreated }: OrderCh
             product_id: listing.id,
             buyer_postcode: isGift ? giftPostalCode : deliveryPostalCode,
             buyer_city: isGift ? giftCity : deliveryCity,
-            buyer_country: isGift ? giftCountry : deliveryCountry,
+            buyer_country: toCountryCode(isGift ? giftCountry : deliveryCountry),
           },
         });
         if (rateError) throw rateError;
