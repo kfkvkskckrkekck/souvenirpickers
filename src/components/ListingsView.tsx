@@ -50,6 +50,18 @@ export function ListingsView({ onContactPicker, onViewChange }: ListingsViewProp
   const [region, setRegion] = useState('');
   const [price, setPrice] = useState('');
   const [pickupLocation, setPickupLocation] = useState('');
+  const [packagePreset, setPackagePreset] = useState<'small' | 'medium' | 'large' | 'xlarge' | 'custom' | ''>('');
+  const [weightKg, setWeightKg] = useState('');
+  const [lengthCm, setLengthCm] = useState('');
+  const [widthCm, setWidthCm] = useState('');
+  const [heightCm, setHeightCm] = useState('');
+  const [sellerFullName, setSellerFullName] = useState('');
+  const [sellerCompanyName, setSellerCompanyName] = useState('');
+  const [sellerStreet, setSellerStreet] = useState('');
+  const [sellerCity, setSellerCity] = useState('');
+  const [sellerPostcode, setSellerPostcode] = useState('');
+  const [sellerCountry, setSellerCountry] = useState('DE');
+  const [sellerPhone, setSellerPhone] = useState('');
   const [latitude, setLatitude] = useState<number | undefined>();
   const [longitude, setLongitude] = useState<number | undefined>();
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
@@ -496,6 +508,21 @@ export function ListingsView({ onContactPicker, onViewChange }: ListingsViewProp
     }
   };
 
+  const selectPackagePreset = (preset: 'small' | 'medium' | 'large' | 'xlarge' | 'custom') => {
+    setPackagePreset(preset);
+    const values = {
+      small: ['0.5', '15', '10', '5'],
+      medium: ['1.5', '25', '20', '10'],
+      large: ['3', '35', '30', '15'],
+      xlarge: ['5', '50', '40', '20'],
+      custom: ['', '', '', ''],
+    }[preset];
+    setWeightKg(values[0]);
+    setLengthCm(values[1]);
+    setWidthCm(values[2]);
+    setHeightCm(values[3]);
+  };
+
   const startEditListing = (listing: ListingWithPicker) => {
     setEditingListing(listing);
     setTitle(listing.title);
@@ -504,6 +531,11 @@ export function ListingsView({ onContactPicker, onViewChange }: ListingsViewProp
     setRegion(listing.region);
     setPrice(listing.price.toString());
     setPickupLocation(listing.pickup_location || '');
+    setPackagePreset(listing.package_size_preset || '');
+    setWeightKg(listing.weight_kg?.toString() || '');
+    setLengthCm(listing.length_cm?.toString() || '');
+    setWidthCm(listing.width_cm?.toString() || '');
+    setHeightCm(listing.height_cm?.toString() || '');
     setLatitude(listing.latitude || undefined);
     setLongitude(listing.longitude || undefined);
     setUploadedImages(listing.images || []);
@@ -520,6 +552,11 @@ export function ListingsView({ onContactPicker, onViewChange }: ListingsViewProp
     setRegion('');
     setPrice('');
     setPickupLocation('');
+    setPackagePreset('');
+    setWeightKg('');
+    setLengthCm('');
+    setWidthCm('');
+    setHeightCm('');
     setLatitude(undefined);
     setLongitude(undefined);
     setUploadedImages([]);
@@ -560,7 +597,40 @@ export function ListingsView({ onContactPicker, onViewChange }: ListingsViewProp
     setCreating(true);
     setCreateError('');
 
+    if ([weightKg, lengthCm, widthCm, heightCm].some((value) => !value || Number(value) <= 0)) {
+      setCreateError('Please add package details to enable automatic shipping calculation for buyers');
+      setCreating(false);
+      return;
+    }
+
     try {
+      if (!profile?.id || !sellerFullName || !sellerStreet || !sellerCity || !sellerPostcode || !sellerCountry || !sellerPhone) {
+        throw new Error('Please add your complete ship-from address for automatic shipping.');
+      }
+
+      const { data: existingAddress } = await supabase
+        .from('seller_addresses')
+        .select('id')
+        .eq('seller_id', profile.id)
+        .eq('is_default', true)
+        .maybeSingle();
+      const addressData = {
+        seller_id: profile.id,
+        full_name: sellerFullName,
+        company_name: sellerCompanyName || null,
+        street: sellerStreet,
+        city: sellerCity,
+        postcode: sellerPostcode,
+        country_code: sellerCountry,
+        phone: sellerPhone,
+        is_default: true,
+      };
+      const addressQuery = existingAddress
+        ? supabase.from('seller_addresses').update(addressData).eq('id', existingAddress.id)
+        : supabase.from('seller_addresses').insert(addressData);
+      const { error: addressError } = await addressQuery;
+      if (addressError) throw addressError;
+
       const listingData = {
         picker_id: pickerProfile.id,
         title,
@@ -575,6 +645,11 @@ export function ListingsView({ onContactPicker, onViewChange }: ListingsViewProp
         latitude: latitude || null,
         longitude: longitude || null,
         pickup_location: pickupLocation || null,
+        weight_kg: Number(weightKg),
+        length_cm: Number(lengthCm),
+        width_cm: Number(widthCm),
+        height_cm: Number(heightCm),
+        package_size_preset: packagePreset || 'custom',
         available: true,
       };
 
@@ -764,7 +839,7 @@ export function ListingsView({ onContactPicker, onViewChange }: ListingsViewProp
 
             <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
               <p className="text-sm text-blue-800">
-                <strong>Pricing Tip:</strong> Set your item price only. When collectors place orders, you'll receive their delivery address and can provide a custom shipping quote based on actual courier costs to their specific location.
+                <strong>Shipping Tip:</strong> Add accurate package details so buyers can see automated delivery rates at checkout.
               </p>
             </div>
 
@@ -805,6 +880,52 @@ export function ListingsView({ onContactPicker, onViewChange }: ListingsViewProp
                   </div>
                 </div>
               )}
+            </div>
+
+            <div className="border border-gray-200 bg-gray-50 rounded-xl p-5 space-y-3">
+              <h3 className="font-semibold text-gray-900">Ship-from address</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <input value={sellerFullName} onChange={(event) => setSellerFullName(event.target.value)} placeholder="Full name" className="px-3 py-2 border border-gray-300 rounded-lg" required />
+                <input value={sellerCompanyName} onChange={(event) => setSellerCompanyName(event.target.value)} placeholder="Company name (optional)" className="px-3 py-2 border border-gray-300 rounded-lg" />
+                <input value={sellerStreet} onChange={(event) => setSellerStreet(event.target.value)} placeholder="Street and number" className="px-3 py-2 border border-gray-300 rounded-lg sm:col-span-2" required />
+                <input value={sellerCity} onChange={(event) => setSellerCity(event.target.value)} placeholder="City" className="px-3 py-2 border border-gray-300 rounded-lg" required />
+                <input value={sellerPostcode} onChange={(event) => setSellerPostcode(event.target.value)} placeholder="Postcode" className="px-3 py-2 border border-gray-300 rounded-lg" required />
+                <select value={sellerCountry} onChange={(event) => setSellerCountry(event.target.value)} className="px-3 py-2 border border-gray-300 rounded-lg" required>
+                  {['AT','BE','BG','HR','CY','CZ','DE','DK','EE','ES','FI','FR','GR','HU','IE','IT','LT','LU','LV','MT','NL','PL','PT','RO','SE','SI','SK'].map((country) => <option key={country} value={country}>{country}</option>)}
+                </select>
+                <input value={sellerPhone} onChange={(event) => setSellerPhone(event.target.value)} placeholder="Phone" className="px-3 py-2 border border-gray-300 rounded-lg" required />
+              </div>
+            </div>
+
+            <div className="border border-blue-200 bg-blue-50 rounded-xl p-5 space-y-4">
+              <div>
+                <h3 className="font-semibold text-gray-900">Shipping Details</h3>
+                <p className="text-sm text-gray-600 mt-1">Choose a package size so buyers can receive automatic shipping rates.</p>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                {([
+                  ['small', 'Small', '0.5 kg · 15 × 10 × 5 cm'],
+                  ['medium', 'Medium', '1.5 kg · 25 × 20 × 10 cm'],
+                  ['large', 'Large', '3 kg · 35 × 30 × 15 cm'],
+                  ['xlarge', 'X-Large', '5 kg · 50 × 40 × 20 cm'],
+                  ['custom', 'Custom', 'Enter dimensions'],
+                ] as const).map(([value, label, detail]) => (
+                  <button type="button" key={value} onClick={() => selectPackagePreset(value)} className={`text-left rounded-lg border p-3 transition-colors ${packagePreset === value ? 'border-blue-600 bg-white ring-2 ring-blue-200' : 'border-blue-100 bg-white/70 hover:border-blue-400'}`}>
+                    <span className="block text-sm font-semibold text-gray-900">{label}</span>
+                    <span className="block text-xs text-gray-600 mt-1">{detail}</span>
+                  </button>
+                ))}
+              </div>
+              {packagePreset && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[["Weight (kg)", weightKg, setWeightKg], ["Length (cm)", lengthCm, setLengthCm], ["Width (cm)", widthCm, setWidthCm], ["Height (cm)", heightCm, setHeightCm]].map(([label, value, setter]) => (
+                    <label key={label as string} className="text-sm text-gray-700">{label as string}
+                      <input type="number" min="0.01" step="0.01" value={value as string} onChange={(event) => (setter as (value: string) => void)(event.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg" readOnly={packagePreset !== 'custom'} required />
+                    </label>
+                  ))}
+                </div>
+              )}
+              {createError && createError.includes('package details') && <p className="text-sm text-red-700">{createError}</p>}
             </div>
 
             <div>

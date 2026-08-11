@@ -115,6 +115,11 @@ export type Listing = {
   latitude?: number;
   longitude?: number;
   pickup_location?: string;
+  weight_kg?: number;
+  length_cm?: number;
+  width_cm?: number;
+  height_cm?: number;
+  package_size_preset?: 'small' | 'medium' | 'large' | 'xlarge' | 'custom';
   available: boolean;
   created_at: string;
   updated_at: string;
@@ -214,7 +219,7 @@ export type Order = {
   client_id: string;
   picker_id: string;
   listing_id: string;
-  status: 'pending' | 'accepted' | 'in_progress' | 'delivered' | 'cancelled' | 'refunded';
+  status: 'pending' | 'accepted' | 'in_progress' | 'paid' | 'label_created' | 'shipped' | 'delivered' | 'completed' | 'cancelled' | 'refunded';
   quantity: number;
   total_price: number;
   delivery_address?: string;
@@ -224,6 +229,14 @@ export type Order = {
   delivery_postal_code?: string;
   delivery_country?: string;
   delivery_instructions?: string;
+  shipping_carrier?: string;
+  shipping_service?: string;
+  shipping_cost?: number;
+  shipping_label_url?: string;
+  tracking_status?: string;
+  sendcloud_parcel_id?: string;
+  label_purchased_at?: string;
+  estimated_delivery_days?: string;
   payment_status: 'pending' | 'paid' | 'refunded';
   payment_intent_id?: string;
   notes?: string;

@@ -151,7 +151,7 @@ export function NotificationsView({ onViewChange }: NotificationsViewProps) {
 
     // Map metadata action hints to views
     if (action) {
-      if (action === 'review_quote' || action === 'confirm_delivery' || action === 'track_shipment') return 'orders';
+      if (action === 'confirm_delivery' || action === 'track_shipment') return 'orders';
       if (action === 'prepare_item' || action === 'view_cancelled_order') return 'orders';
       if (action === '/orders' || String(action).includes('order')) return 'orders';
       if (action === 'view_payout' || action === '/earnings') return 'earnings';
@@ -160,13 +160,11 @@ export function NotificationsView({ onViewChange }: NotificationsViewProps) {
     // Map by notification type
     const orderTypes = [
       'order', 'new_order', 'order_placed', 'order_confirmation', 'new_order_picker',
-      'shipping_quote_needed', 'shipping_quote_provided', 'quote_accepted',
-      'payment_required', 'shipping_quote_canceled', 'order_status_update',
+      'payment_required', 'order_status_update',
     ];
     if (orderTypes.includes(type)) return 'orders';
     if (type === 'payment' || type === 'payout_sent' || type === 'payout_failed') return 'earnings';
     if (type === 'custom_order') return 'custom-orders';
-    if (type === 'transportation_quote') return 'transportation-quotes';
     if (type === 'subscription' || type === 'trial_ending') return 'subscription';
     if (type === 'review') return 'orders';
 
@@ -183,9 +181,7 @@ export function NotificationsView({ onViewChange }: NotificationsViewProps) {
     let config: ButtonConfig | null = null;
 
     // Metadata-driven actions (highest priority)
-    if (action === 'review_quote') {
-      config = { label: 'Review Quote & Pay', color: 'bg-green-600 hover:bg-green-700', icon: <DollarSign className="w-3.5 h-3.5" />, view: 'orders' };
-    } else if (action === 'prepare_item') {
+    if (action === 'prepare_item') {
       config = { label: 'View Order', color: 'bg-blue-600 hover:bg-blue-700', icon: <Package className="w-3.5 h-3.5" />, view: 'orders' };
     } else if (action === 'track_shipment') {
       config = { label: 'Track Shipment', color: 'bg-blue-600 hover:bg-blue-700', icon: <Truck className="w-3.5 h-3.5" />, view: 'orders' };
@@ -212,9 +208,6 @@ export function NotificationsView({ onViewChange }: NotificationsViewProps) {
     // Type-based fallback mapping
     if (!config) {
       const typeMap: Record<string, ButtonConfig> = {
-        shipping_quote_needed:   { label: 'Provide Quote',       color: 'bg-amber-500 hover:bg-amber-600',   icon: <DollarSign className="w-3.5 h-3.5" />,  view: 'orders' },
-        shipping_quote_provided: { label: 'Review Quote & Pay',  color: 'bg-green-600 hover:bg-green-700',   icon: <DollarSign className="w-3.5 h-3.5" />,  view: 'orders' },
-        quote_accepted:          { label: 'View Order',          color: 'bg-blue-600 hover:bg-blue-700',     icon: <Package className="w-3.5 h-3.5" />,    view: 'orders' },
         new_order:               { label: 'View Order',          color: 'bg-blue-600 hover:bg-blue-700',     icon: <Package className="w-3.5 h-3.5" />,    view: 'orders' },
         new_order_picker:        { label: 'View Order',          color: 'bg-blue-600 hover:bg-blue-700',     icon: <Package className="w-3.5 h-3.5" />,    view: 'orders' },
         order_placed:            { label: 'View Order',          color: 'bg-blue-600 hover:bg-blue-700',     icon: <Package className="w-3.5 h-3.5" />,    view: 'orders' },
@@ -223,9 +216,7 @@ export function NotificationsView({ onViewChange }: NotificationsViewProps) {
         order:                   { label: 'View Order',          color: 'bg-blue-600 hover:bg-blue-700',     icon: <Package className="w-3.5 h-3.5" />,    view: 'orders' },
         payment_required:        { label: 'Pay Now',             color: 'bg-green-600 hover:bg-green-700',   icon: <DollarSign className="w-3.5 h-3.5" />,  view: 'orders' },
         payment:                 { label: 'View Earnings',       color: 'bg-emerald-600 hover:bg-emerald-700', icon: <BarChart2 className="w-3.5 h-3.5" />, view: 'earnings' },
-        shipping_quote_canceled: { label: 'View Order',          color: 'bg-gray-600 hover:bg-gray-700',     icon: <Package className="w-3.5 h-3.5" />,    view: 'orders' },
         custom_order:            { label: 'View Custom Order',   color: 'bg-blue-600 hover:bg-blue-700',     icon: <Package className="w-3.5 h-3.5" />,    view: 'custom-orders' },
-        transportation_quote:    { label: 'View Quote',          color: 'bg-amber-500 hover:bg-amber-600',   icon: <Truck className="w-3.5 h-3.5" />,      view: 'transportation-quotes' },
         subscription:            { label: 'Manage Subscription', color: 'bg-blue-600 hover:bg-blue-700',     icon: <CreditCard className="w-3.5 h-3.5" />, view: 'subscription' },
         trial_ending:            { label: 'Upgrade Now',         color: 'bg-amber-500 hover:bg-amber-600',   icon: <CreditCard className="w-3.5 h-3.5" />, view: 'subscription' },
         payout_sent:             { label: 'View Earnings',       color: 'bg-emerald-600 hover:bg-emerald-700', icon: <BarChart2 className="w-3.5 h-3.5" />, view: 'earnings' },

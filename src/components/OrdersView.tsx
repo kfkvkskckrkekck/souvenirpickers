@@ -28,7 +28,7 @@ type OrderWithDetails = Order & {
 };
 
 type OrdersViewProps = {
-  onViewChange?: (view: string) => void;
+  onViewChange?: (view: string, pickerId?: string, orderId?: string) => void;
   initialOrderId?: string | null;
 };
 
@@ -37,21 +37,21 @@ export function OrdersView({ onViewChange, initialOrderId }: OrdersViewProps = {
   const toast = useToast();
   const [orders, setOrders] = useState<OrderWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
+  const [providingQuoteFor, setProvidingQuoteFor] = useState<string | null>(null);
+  const [shippingCost, setShippingCost] = useState('');
+  const [shippingNotes, setShippingNotes] = useState('');
+  const [estimatedWeight, setEstimatedWeight] = useState('');
+  const [acceptingQuote] = useState<string | null>(null);
+  const [cancelingQuote] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>('all');
   const [reviewingOrder, setReviewingOrder] = useState<OrderWithDetails | null>(null);
   const [disputingOrder, setDisputingOrder] = useState<string | null>(null);
   const [disputeReason, setDisputeReason] = useState('');
   const [uploadingVideo, setUploadingVideo] = useState<string | null>(null);
-  const [providingQuoteFor, setProvidingQuoteFor] = useState<string | null>(null);
-  const [shippingCost, setShippingCost] = useState('');
-  const [shippingNotes, setShippingNotes] = useState('');
-  const [estimatedWeight, setEstimatedWeight] = useState('');
   const [paymentModalOrder, setPaymentModalOrder] = useState<{ orderId: string; clientSecret: string; amount: number } | null>(null);
-  const [acceptingQuote, setAcceptingQuote] = useState<string | null>(null);
   const [payoutSetupComplete, setPayoutSetupComplete] = useState<boolean>(true);
   const [markingShipped, setMarkingShipped] = useState<string | null>(null);
   const [trackingNumber, setTrackingNumber] = useState('');
-  const [cancelingQuote, setCancelingQuote] = useState<string | null>(null);
   const [highlightedOrderId, setHighlightedOrderId] = useState<string | null>(initialOrderId ?? null);
   const orderRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -87,6 +87,9 @@ export function OrdersView({ onViewChange, initialOrderId }: OrdersViewProps = {
       setPayoutSetupComplete(false);
     }
   };
+
+  const handleProvideShippingQuote = (_orderId: string) => undefined;
+  const handleCancelQuote = (_orderId: string) => undefined;
 
   const loadOrders = async () => {
     if (!profile) return;
@@ -189,152 +192,6 @@ export function OrdersView({ onViewChange, initialOrderId }: OrdersViewProps = {
     } catch (error) {
       console.error('Error confirming delivery:', error);
       toast.showToast('Failed to confirm delivery', 'error');
-    }
-  };
-
-  const handleProvideShippingQuote = async (orderId: string) => {
-    if (!profile || !shippingCost) return;
-
-    try {
-      const cost = parseFloat(shippingCost);
-      if (isNaN(cost) || cost < 0) {
-        alert('Please enter a valid shipping cost');
-        return;
-      }
-
-      const { error } = await supabase
-        .from('orders')
-        .update({
-          transportation_cost: cost,
-          shipping_quote_status: 'quote_provided',
-          quote_provided_at: new Date().toISOString(),
-          shipping_notes: shippingNotes || null,
-          estimated_weight_kg: estimatedWeight ? parseFloat(estimatedWeight) : null,
-        })
-        .eq('id', orderId);
-
-      if (error) throw error;
-
-      setProvidingQuoteFor(null);
-      setShippingCost('');
-      setShippingNotes('');
-      setEstimatedWeight('');
-      await loadOrders();
-    } catch (error) {
-      alert('Failed to provide shipping quote. Please try again.');
-    }
-  };
-
-  const handleAcceptQuote = async (order: OrderWithDetails) => {
-    if (!profile || !order.transportation_cost) return;
-
-    try {
-      setAcceptingQuote(order.id);
-
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('Please log in to continue');
-      }
-
-      const productAmount = Number(order.total_price);
-      const shippingAmount = Number(order.transportation_cost);
-      const totalAmount = productAmount + shippingAmount;
-
-      // Update the order to mark quote as approved (total_price already updated by picker)
-      const { error: updateError } = await supabase
-        .from('orders')
-        .update({
-          shipping_quote_status: 'quote_approved'
-        })
-        .eq('id', order.id);
-
-      if (updateError) {
-        throw new Error('Failed to update order: ' + updateError.message);
-      }
-
-      // Create the payment intent with split payment amounts
-      // Shipping will be paid immediately, product held in escrow
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-payment-intent`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            orderId: order.id,
-            amount: totalAmount,
-            productAmount: productAmount,
-            shippingAmount: shippingAmount,
-            currency: 'eur',
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create payment intent');
-      }
-
-      const paymentData = await response.json();
-
-      setPaymentModalOrder({
-        orderId: order.id,
-        clientSecret: paymentData.clientSecret,
-        amount: totalAmount,
-      });
-
-      setAcceptingQuote(null);
-    } catch (error: any) {
-      setAcceptingQuote(null);
-
-      // Check if error is about picker's payout account
-      const errorMessage = error.message || '';
-      if (errorMessage.includes('payout account') || errorMessage.includes('Stripe Connect')) {
-        alert('Cannot process payment: The picker has not set up their payout account yet. Please contact them to complete their account setup before you can complete this purchase.');
-      } else {
-        alert('Failed to process quote acceptance: ' + errorMessage);
-      }
-    }
-  };
-
-  const handleCancelQuote = async (orderId: string) => {
-    if (!profile) return;
-
-    const confirmCancel = window.confirm(
-      'Are you sure you want to cancel this shipping quote? You can request a new quote from the picker if needed.'
-    );
-
-    if (!confirmCancel) return;
-
-    setCancelingQuote(orderId);
-
-    try {
-      const order = orders.find(o => o.id === orderId);
-      if (!order) throw new Error('Order not found');
-
-      // Reset the shipping quote status and transportation cost
-      const { error } = await supabase
-        .from('orders')
-        .update({
-          shipping_quote_status: 'pending_quote',
-          transportation_cost: null,
-          quote_provided_at: null,
-          shipping_notes: null,
-          estimated_weight_kg: null,
-        })
-        .eq('id', orderId);
-
-      if (error) throw error;
-
-      toast.addToast('Shipping quote canceled successfully', 'success');
-      await loadOrders();
-    } catch (error: any) {
-      console.error('Error canceling quote:', error);
-      toast.addToast('Failed to cancel quote: ' + error.message, 'error');
-    } finally {
-      setCancelingQuote(null);
     }
   };
 
@@ -730,7 +587,7 @@ export function OrdersView({ onViewChange, initialOrderId }: OrdersViewProps = {
                   )}
 
                   {/* Shipping Quote Section */}
-                  {order.shipping_quote_status === 'quote_requested' && profile?.user_type === 'picker' && (
+                  {false && order.shipping_quote_status === 'quote_requested' && profile?.user_type === 'picker' && (
                     <div className="mb-4 p-4 bg-amber-50 border-2 border-amber-200 rounded-lg">
                       <div className="flex items-start gap-3 mb-3">
                         <DollarSign className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
@@ -819,7 +676,7 @@ export function OrdersView({ onViewChange, initialOrderId }: OrdersViewProps = {
                     </div>
                   )}
 
-                  {(order.shipping_quote_status === 'quote_provided' || order.shipping_quote_status === 'quote_approved') && order.transportation_cost !== null && (
+                  {false && (order.shipping_quote_status === 'quote_provided' || order.shipping_quote_status === 'quote_approved') && order.transportation_cost !== null && (
                     <div className="mb-4 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
                       <div className="flex items-start gap-3">
                         <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
@@ -889,7 +746,7 @@ export function OrdersView({ onViewChange, initialOrderId }: OrdersViewProps = {
                                   </button>
                                 )}
                                 <button
-                                  onClick={() => handleAcceptQuote(order)}
+                                  onClick={() => undefined}
                                   disabled={acceptingQuote === order.id || cancelingQuote === order.id}
                                   className={`${order.shipping_quote_status === 'quote_provided' ? 'flex-1' : 'w-full'} bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
                                 >
@@ -942,6 +799,18 @@ export function OrdersView({ onViewChange, initialOrderId }: OrdersViewProps = {
                       </div>
                     </div>
                   )}
+
+                  <div className="mb-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div><p className="text-xs uppercase tracking-wide text-gray-500">Shipping</p><p className="font-semibold text-gray-900">{order.shipping_carrier || 'Sendcloud'} · {order.shipping_service || 'Awaiting label'}</p></div>
+                      <span className={`rounded-full px-3 py-1 text-xs font-semibold ${order.shipping_label_url ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}`}>{order.shipping_label_url ? 'Label Ready' : 'Awaiting Label'}</span>
+                    </div>
+                    {order.tracking_number && <button onClick={() => void navigator.clipboard.writeText(order.tracking_number!)} className="mt-3 text-sm font-medium text-blue-700 hover:text-blue-900">Tracking: {order.tracking_number} · Copy</button>}
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {order.shipping_label_url && <button onClick={() => window.open(order.shipping_label_url, '_blank', 'noopener,noreferrer')} className="rounded-lg bg-green-700 px-3 py-2 text-sm font-semibold text-white hover:bg-green-800">Download Shipping Label</button>}
+                      {profile?.user_type === 'client' && <button onClick={() => onViewChange?.('order-tracking', undefined, order.id)} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700"><Truck className="w-4 h-4" /> Track your order</button>}
+                    </div>
+                  </div>
 
                   {order.notes && (
                     <p className="text-sm text-gray-600 mb-4 p-3 bg-gray-50 rounded-lg">

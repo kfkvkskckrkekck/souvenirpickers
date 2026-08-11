@@ -64,7 +64,7 @@
 
 //   const pickerOnlyViews = ['analytics', 'earnings', 'revenue-boosters', 'collectors'];
 //   const collectorOnlyViews = ['discover', 'wishlist', 'pickers', 'matched-pickers', 'collections', 'location-alerts', 'cart'];
-//   const sharedViews = ['home', 'profile', 'listings', 'orders', 'custom-orders', 'messages', 'notifications',
+//   const sharedViews = ['home', 'profile', 'listings', 'orders', 'order-tracking', 'custom-orders', 'messages', 'notifications',
 //                        'referrals', 'faq', 'support', 'social-feed', 'live-streams', 'verification',
 //                        'trust-score', 'disputes', 'safety', 'account-recovery', 'subscription', 'requests',
 //                        'privacy', 'terms', 'cookie-policy', 'desires'];
@@ -338,6 +338,7 @@ const DesiresView = lazy(() => import('./components/DesiresView').then(module =>
 const SubscriptionView = lazy(() => import('./components/SubscriptionView').then(module => ({ default: module.SubscriptionView })));
 const RealTimeChat = lazy(() => import('./components/RealTimeChat').then(module => ({ default: module.RealTimeChat })));
 const OrdersView = lazy(() => import('./components/OrdersView').then(module => ({ default: module.OrdersView })));
+const OrderTrackingView = lazy(() => import('./components/OrderTrackingView').then(module => ({ default: module.OrderTrackingView })));
 const AnalyticsDashboard = lazy(() => import('./components/AnalyticsDashboard').then(module => ({ default: module.AnalyticsDashboard })));
 const NotificationSettings = lazy(() => import('./components/NotificationSettings').then(module => ({ default: module.NotificationSettings })));
 const NotificationsView = lazy(() => import('./components/NotificationsView').then(module => ({ default: module.NotificationsView })));
@@ -383,7 +384,7 @@ function AppContent() {
 
   const pickerOnlyViews = ['analytics', 'earnings', 'revenue-boosters', 'collectors'];
   const collectorOnlyViews = ['discover', 'wishlist', 'pickers', 'matched-pickers', 'collections', 'location-alerts', 'cart'];
-  const sharedViews = ['home', 'profile', 'listings', 'orders', 'custom-orders', 'messages', 'notifications',
+  const sharedViews = ['home', 'profile', 'listings', 'orders', 'order-tracking', 'custom-orders', 'messages', 'notifications',
                        'referrals', 'faq', 'support', 'social-feed', 'live-streams', 'verification',
                        'trust-score', 'disputes', 'safety', 'account-recovery', 'subscription', 'requests',
                        'privacy', 'terms', 'cookie-policy', 'desires'];
@@ -437,9 +438,9 @@ function AppContent() {
     if (pickerId && view === 'messages') {
       setMessagePickerId(pickerId);
     }
-    if (orderId && view === 'orders') {
+    if (orderId && (view === 'orders' || view === 'order-tracking')) {
       setSelectedOrderId(orderId);
-    } else if (view === 'orders' && !orderId) {
+    } else if (view === 'orders' || view === 'order-tracking') {
       setSelectedOrderId(null);
     }
   };
@@ -551,6 +552,7 @@ function AppContent() {
             {currentView === 'desires' && <DesiresView onViewChange={handleViewChange} />}
             {currentView === 'messages' && <RealTimeChat initialPickerId={messagePickerId} />}
             {currentView === 'orders' && <OrdersView onViewChange={handleViewChange} initialOrderId={selectedOrderId} />}
+            {currentView === 'order-tracking' && <OrderTrackingView orderId={selectedOrderId} />}
             {currentView === 'cart' && (
               isCollector ? (
                 <CartView />

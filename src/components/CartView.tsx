@@ -81,7 +81,7 @@ export function CartView() {
   };
 
 
-  const handleRequestShippingQuote = async () => {
+  const handlePlaceOrder = async () => {
     if (!deliveryStreet.trim() || !deliveryCity.trim() || !deliveryPostalCode.trim() || !deliveryCountry.trim()) {
       setMessage('Please fill in all delivery address fields');
       return;
@@ -89,23 +89,13 @@ export function CartView() {
 
     try {
       setCheckoutLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('Please log in to continue');
-      }
-
-      // Create full delivery address with building and apartment
       const addressParts = [deliveryStreet];
       if (deliveryBuilding) addressParts.push(deliveryBuilding);
       if (deliveryApartment) addressParts.push(deliveryApartment);
       addressParts.push(deliveryCity, deliveryPostalCode, deliveryCountry);
       const fullAddress = addressParts.filter(p => p.trim()).join(', ');
 
-      // Create orders with shipping quote requested status
       for (const item of cartItems) {
-        const itemSubtotal = item.listing.price * item.quantity;
-
-        // Get the picker's user_id from picker_profiles
         const { data: pickerProfile, error: pickerError } = await supabase
           .from('picker_profiles')
           .select('user_id')
@@ -120,7 +110,7 @@ export function CartView() {
           picker_id: pickerProfile.user_id,
           listing_id: item.listing_id,
           quantity: item.quantity,
-          total_price: itemSubtotal,
+          total_price: item.listing.price * item.quantity,
           delivery_address: fullAddress,
           delivery_street: deliveryStreet,
           delivery_street_line2: `${deliveryBuilding || ''}${deliveryApartment ? ' ' + deliveryApartment : ''}`.trim() || null,
@@ -128,33 +118,27 @@ export function CartView() {
           delivery_postal_code: deliveryPostalCode,
           delivery_country: deliveryCountry,
           delivery_instructions: deliveryInstructions,
-          status: 'awaiting_quote',
+          status: 'pending',
           payment_status: 'pending',
-          shipping_quote_status: 'quote_requested',
-          quote_requested_at: new Date().toISOString(),
+          tracking_status: 'pending',
         });
 
         if (orderError) throw orderError;
       }
 
-      // Clear cart
       const { error: deleteError } = await supabase
         .from('cart_items')
         .delete()
         .eq('client_id', user?.id);
 
-      if (deleteError) {
-        console.error('Error clearing cart:', deleteError);
-      }
+      if (deleteError) throw deleteError;
 
-      // Show success message
-      setMessage('Orders created! Pickers will provide shipping quotes soon.');
+      setMessage('Order placed successfully. Shipping options will be calculated during checkout.');
       setShowCheckout(false);
       setOrderSuccess(true);
       loadCart();
-
-    } catch (error: any) {
-      setMessage('Error creating orders: ' + error.message);
+    } catch (error: unknown) {
+      setMessage('Error creating orders: ' + (error instanceof Error ? error.message : 'Please try again.'));
       setTimeout(() => setMessage(''), 5000);
     } finally {
       setCheckoutLoading(false);
@@ -376,7 +360,7 @@ export function CartView() {
                   </div>
 
                   <button
-                    onClick={handleRequestShippingQuote}
+                    onClick={handlePlaceOrder}
                     disabled={checkoutLoading || !deliveryStreet.trim() || !deliveryCity.trim() || !deliveryPostalCode.trim() || !deliveryCountry.trim()}
                     className="w-full bg-blue-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg flex items-center justify-center gap-2"
                   >

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Package, DollarSign, MapPin, Gift, MessageCircle } from 'lucide-react';
+import { X, Package, DollarSign, MapPin, Gift } from 'lucide-react';
 import { supabase, Listing, Profile, Order } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { StripeCheckoutForm } from './StripeCheckoutForm';
@@ -26,6 +26,15 @@ const COUNTRIES = [
   'Mongolia', 'Kazakhstan', 'Uzbekistan', 'Turkmenistan', 'Kyrgyzstan',
   'Tajikistan', 'Afghanistan', 'Iran', 'Iraq', 'Syria', 'Yemen', 'Oman'
 ].sort();
+
+type ShippingRate = {
+  id: number;
+  name: string;
+  carrier: string;
+  min_days: number;
+  max_days: number;
+  price: number;
+};
 
 type OrderCheckoutModalProps = {
   listing: Listing & { picker?: { profile?: Profile } };
@@ -66,9 +75,13 @@ export function OrderCheckoutModal({ listing, onClose, onOrderCreated }: OrderCh
   const [error, setError] = useState('');
   const [showPayment, setShowPayment] = useState(false);
   const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
+  const [shippingRates, setShippingRates] = useState<ShippingRate[]>([]);
+  const [selectedShippingRate, setSelectedShippingRate] = useState<ShippingRate | null>(null);
+  const [loadingRates, setLoadingRates] = useState(false);
 
   const itemTotal = listing.price * quantity;
-  const totalPrice = itemTotal; // Transportation cost will be added by picker after quote
+  const shippingTotal = selectedShippingRate?.price || 0;
+  const totalPrice = itemTotal + shippingTotal;
 
   // Helper function to format structured address into a single string
   const formatAddress = (street: string, building: string, apartment: string, city: string, state: string, postal: string, country: string): string => {
@@ -92,6 +105,24 @@ export function OrderCheckoutModal({ listing, onClose, onOrderCreated }: OrderCh
     setError('');
 
     try {
+      if (!selectedShippingRate) {
+        setLoadingRates(true);
+        const { data: rateData, error: rateError } = await supabase.functions.invoke('get-shipping-rates', {
+          body: {
+            product_id: listing.id,
+            buyer_postcode: isGift ? giftPostalCode : deliveryPostalCode,
+            buyer_city: isGift ? giftCity : deliveryCity,
+            buyer_country: isGift ? giftCountry : deliveryCountry,
+          },
+        });
+        if (rateError) throw rateError;
+        const rates = Array.isArray(rateData?.rates) ? rateData.rates as ShippingRate[] : [];
+        if (rates.length === 0) throw new Error('Shipping is not available for this address. Please contact the seller.');
+        setShippingRates(rates);
+        setError('Choose a shipping option to continue.');
+        return;
+      }
+
       // Format addresses
       const deliveryAddressFormatted = formatAddress(
         deliveryStreet,
@@ -131,6 +162,10 @@ export function OrderCheckoutModal({ listing, onClose, onOrderCreated }: OrderCh
           listing_id: listing.id,
           quantity,
           total_price: totalPrice,
+          shipping_cost: shippingTotal,
+          shipping_carrier: selectedShippingRate.carrier,
+          shipping_service: selectedShippingRate.name,
+          estimated_delivery_days: `${selectedShippingRate.min_days}-${selectedShippingRate.max_days} business days`,
           delivery_address: isGift ? giftRecipientAddressFormatted : (deliveryAddressFormatted || null),
           delivery_street: isGift ? giftStreet : deliveryStreet,
           delivery_street_line2: isGift ? `${giftBuilding || ''}${giftApartment ? ' ' + giftApartment : ''}`.trim() || null : `${deliveryBuilding || ''}${deliveryApartment ? ' ' + deliveryApartment : ''}`.trim() || null,
@@ -141,16 +176,14 @@ export function OrderCheckoutModal({ listing, onClose, onOrderCreated }: OrderCh
             : (deliveryState ? `${deliveryState}, ${deliveryCountry}` : deliveryCountry),
           delivery_instructions: deliveryInstructions || null,
           notes: notes || null,
-          status: 'awaiting_quote',
+          status: 'pending',
           payment_status: 'pending',
-          shipping_quote_status: 'quote_requested',
-          quote_requested_at: new Date().toISOString(),
+          tracking_status: 'pending',
           is_gift: isGift,
           gift_recipient_name: isGift ? giftRecipientName : null,
           gift_recipient_email: isGift ? giftRecipientEmail : null,
           gift_message: isGift ? giftMessage : null,
           gift_recipient_address: isGift ? giftRecipientAddressFormatted : null,
-          transportation_cost: null,
         })
         .select()
         .maybeSingle();
@@ -162,13 +195,11 @@ export function OrderCheckoutModal({ listing, onClose, onOrderCreated }: OrderCh
         .from('order_status_history')
         .insert({
           order_id: data.id,
-          status: 'awaiting_quote',
+          status: 'pending',
           notes: 'Order created',
           changed_by: user.id,
         });
 
-      // Don't show payment when shipping quote is requested
-      // Collector will pay after picker provides shipping cost
       onOrderCreated(data);
       onClose();
     } catch (err) {
@@ -176,6 +207,7 @@ export function OrderCheckoutModal({ listing, onClose, onOrderCreated }: OrderCh
       setError('Failed to create order. Please try again.');
     } finally {
       setSubmitting(false);
+      setLoadingRates(false);
     }
   };
 
@@ -561,29 +593,23 @@ export function OrderCheckoutModal({ listing, onClose, onOrderCreated }: OrderCh
                 </div>
               </div>
 
-              <div className="bg-amber-50 border-2 border-amber-200 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <MessageCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="text-sm font-semibold text-gray-900 mb-2">
-                      Shipping Cost Process
-                    </h4>
-                    <div className="space-y-2 text-xs text-gray-700">
-                      <p>
-                        <strong>Step 1:</strong> After placing your order, the picker will calculate the exact shipping cost based on your delivery address, package weight, and current courier rates.
-                      </p>
-                      <p>
-                        <strong>Step 2:</strong> The picker will provide you with a detailed shipping quote through the order messaging system.
-                      </p>
-                      <p>
-                        <strong>Step 3:</strong> Once you approve the shipping cost, the picker will update your order with the final total, and you can proceed with payment.
-                      </p>
-                      <p className="mt-3 text-amber-800 font-medium">
-                        💡 This ensures you get the most accurate and competitive shipping rates for your specific delivery.
-                      </p>
-                    </div>
+              <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                <h4 className="text-sm font-semibold text-gray-900 mb-3">Choose Shipping</h4>
+                {shippingRates.length > 0 ? (
+                  <div className="space-y-2">
+                    {shippingRates.map((rate) => (
+                      <button type="button" key={rate.id} onClick={() => { setSelectedShippingRate(rate); setError(''); }} className={`w-full text-left rounded-lg border-2 p-3 transition-colors ${selectedShippingRate?.id === rate.id ? 'border-blue-600 bg-white' : 'border-blue-100 bg-white/70 hover:border-blue-400'}`}>
+                        <div className="flex items-center justify-between gap-3">
+                          <div><p className="font-semibold text-gray-900">{rate.carrier}</p><p className="text-sm text-gray-700">{rate.name}</p><p className="text-xs text-gray-500">{rate.min_days}-{rate.max_days} business days</p></div>
+                          <span className="font-bold text-gray-900">€{rate.price.toFixed(2)}</span>
+                        </div>
+                      </button>
+                    ))}
                   </div>
-                </div>
+                ) : (
+                  <p className="text-sm text-gray-700">Shipping rates will be calculated after you submit your delivery address.</p>
+                )}
+                {loadingRates && <p className="text-sm text-blue-700 mt-3">Calculating shipping rates...</p>}
               </div>
             </div>
           )}
@@ -636,8 +662,8 @@ export function OrderCheckoutModal({ listing, onClose, onOrderCreated }: OrderCh
                 <span>€{itemTotal.toFixed(2)}</span>
               </div>
               <div className="flex items-center justify-between text-xs text-gray-600 italic">
-                <span>Shipping cost:</span>
-                <span>To be quoted by picker</span>
+                <span>Shipping:</span>
+                <span>€{shippingTotal.toFixed(2)}</span>
               </div>
               <div className="border-t border-blue-200 pt-2"></div>
               <div className="flex items-center justify-between text-lg font-bold">
@@ -647,9 +673,7 @@ export function OrderCheckoutModal({ listing, onClose, onOrderCreated }: OrderCh
                 </span>
                 <span className="text-blue-600">€{totalPrice.toFixed(2)}</span>
               </div>
-              <p className="text-xs text-gray-600 italic">
-                *Final total will include shipping cost after picker provides quote
-              </p>
+              <p className="text-xs text-gray-600 italic">Shipping is calculated automatically from the seller's package details.</p>
             </div>
             <div className="mt-3 p-3 bg-white rounded-lg border border-blue-200">
               <div className="flex items-start gap-2">
@@ -688,7 +712,7 @@ export function OrderCheckoutModal({ listing, onClose, onOrderCreated }: OrderCh
                 disabled={submitting}
                 className="w-full sm:flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg text-sm sm:text-base font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed order-1 sm:order-2"
               >
-                {submitting ? 'Creating Order...' : 'Place Order & Request Shipping Quote'}
+                {loadingRates ? 'Calculating Shipping...' : submitting ? 'Creating Order...' : selectedShippingRate ? 'Place Order' : 'Get Shipping Rates'}
               </button>
             </div>
           )}
