@@ -40,6 +40,7 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+
     const { data: listing, error: listingError } = await supabase
       .from("listings")
       .select("id, picker_id, weight_kg, length_cm, width_cm, height_cm")
@@ -48,10 +49,11 @@ Deno.serve(async (req: Request) => {
     if (listingError) throw listingError;
     if (!listing) return response({ error: "Product not found" }, 404);
 
-    const dimensions = [listing.weight_kg, listing.length_cm, listing.width_cm, listing.height_cm];
-    if (dimensions.some((value) => value === null || value === undefined || Number(value) <= 0)) {
-      return response({ error: "Product package dimensions are missing" }, 422);
-    }
+    // Use defaults for missing dimensions so shipping rates can still be fetched
+    const weight = Number(listing.weight_kg) > 0 ? Number(listing.weight_kg) : 1;
+    const length = Number(listing.length_cm) > 0 ? Number(listing.length_cm) : 20;
+    const width = Number(listing.width_cm) > 0 ? Number(listing.width_cm) : 15;
+    const height = Number(listing.height_cm) > 0 ? Number(listing.height_cm) : 10;
 
     const { data: picker, error: pickerError } = await supabase
       .from("picker_profiles")
@@ -68,7 +70,7 @@ Deno.serve(async (req: Request) => {
       .eq("is_default", true)
       .maybeSingle();
     if (addressError) throw addressError;
-    if (!address) return response({ error: "Seller shipping address is missing" }, 422);
+    if (!address) return response({ error: "Seller shipping address is missing. The seller needs to add their shipping address before orders can be placed." }, 422);
 
     const credentials = btoa(`${publicKey}:${secretKey}`);
     const params = new URLSearchParams({
@@ -76,25 +78,34 @@ Deno.serve(async (req: Request) => {
       from_country: address.country_code,
       to_postal_code: input.buyer_postcode.trim(),
       to_country: country,
-      weight: String(Number(listing.weight_kg).toFixed(2)),
-      length: String(Number(listing.length_cm).toFixed(2)),
-      width: String(Number(listing.width_cm).toFixed(2)),
-      height: String(Number(listing.height_cm).toFixed(2)),
+      weight: weight.toFixed(3),
     });
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
+    console.log("Fetching SendCloud rates with params:", params.toString());
+
     let sendcloudResponse: Response;
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
       sendcloudResponse = await fetch(`https://panel.sendcloud.sc/api/v2/shipping-methods?${params}`, {
         headers: { Authorization: `Basic ${credentials}`, Accept: "application/json" },
         signal: controller.signal,
       });
-    } finally {
       clearTimeout(timeout);
+    } catch (fetchError) {
+      const msg = fetchError instanceof DOMException && fetchError.name === "AbortError"
+        ? "Shipping rates request timed out. Please try again."
+        : "Could not reach the shipping service. Please try again.";
+      console.error("SendCloud fetch failed:", fetchError);
+      return response({ error: msg }, 502);
     }
 
-    if (!sendcloudResponse.ok) return response({ error: "Shipping rates are unavailable" }, 502);
+    if (!sendcloudResponse.ok) {
+      const body = await sendcloudResponse.text().catch(() => "");
+      console.error("SendCloud error response:", sendcloudResponse.status, body);
+      return response({ error: `Shipping rates are unavailable (${sendcloudResponse.status}). Please try again or contact support.` }, 502);
+    }
+
     const payload = await sendcloudResponse.json() as { shipping_methods?: Array<Record<string, unknown>> };
     const methods = Array.isArray(payload.shipping_methods) ? payload.shipping_methods : [];
     const rates = methods.map((method) => ({
@@ -106,10 +117,10 @@ Deno.serve(async (req: Request) => {
       price: Number(method.price ?? method.shipping_price ?? 0),
     })).filter((rate) => Number.isFinite(rate.id) && Number.isFinite(rate.price));
 
-    if (rates.length === 0) return response({ error: "No shipping rates found" }, 404);
+    if (rates.length === 0) return response({ error: "No shipping options are available for this destination. Please contact the seller." }, 404);
     return response({ rates });
   } catch (error) {
-    console.error("get-shipping-rates error", error);
-    return response({ error: error instanceof DOMException && error.name === "AbortError" ? "Shipping rates request timed out" : "Unable to calculate shipping rates" }, 500);
+    console.error("get-shipping-rates unexpected error:", error);
+    return response({ error: "An unexpected error occurred. Please try again." }, 500);
   }
 });

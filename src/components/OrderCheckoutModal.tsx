@@ -150,9 +150,13 @@ export function OrderCheckoutModal({ listing, onClose, onOrderCreated }: OrderCh
             buyer_country: toCountryCode(isGift ? giftCountry : deliveryCountry),
           },
         });
-        if (rateError) throw rateError;
+        if (rateError) {
+          const serverMsg = (rateData as { error?: string } | null)?.error;
+          throw new Error(serverMsg || rateError.message || 'Unable to get shipping rates. Please try again.');
+        }
+        if (rateData?.error) throw new Error(rateData.error);
         const rates = Array.isArray(rateData?.rates) ? rateData.rates as ShippingRate[] : [];
-        if (rates.length === 0) throw new Error('Shipping is not available for this address. Please contact the seller.');
+        if (rates.length === 0) throw new Error('Shipping is not available for this destination. Please contact the seller.');
         setShippingRates(rates);
         setError('Choose a shipping option to continue.');
         return;
