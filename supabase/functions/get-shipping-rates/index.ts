@@ -30,26 +30,37 @@ Deno.serve(async (req: Request) => {
     const secretKey = Deno.env.get("SENDCLOUD_SECRET_KEY");
     if (!publicKey || !secretKey) return response({ error: "Shipping service is not configured" }, 503);
 
-    const input = await req.json() as ShippingRequest;
+    let input: ShippingRequest;
+    try {
+      input = await req.json() as ShippingRequest;
+    } catch {
+      return response({ error: "Invalid request body" }, 400);
+    }
+
     const country = input.buyer_country?.trim().toUpperCase();
     if (!input.product_id || !input.buyer_postcode || !input.buyer_city || !/^[A-Z]{2}$/.test(country)) {
       return response({ error: "Product and complete buyer address are required" }, 400);
     }
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!supabaseUrl || !supabaseKey) {
+      return response({ error: "Database connection is not configured" }, 503);
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     const { data: listing, error: listingError } = await supabase
       .from("listings")
       .select("id, picker_id, weight_kg, length_cm, width_cm, height_cm")
       .eq("id", input.product_id)
       .maybeSingle();
-    if (listingError) throw listingError;
+    if (listingError) {
+      console.error("Listing query error:", listingError);
+      return response({ error: "Could not load product details" }, 500);
+    }
     if (!listing) return response({ error: "Product not found" }, 404);
 
-    // Use defaults for missing dimensions so shipping rates can still be fetched
     const weight = Number(listing.weight_kg) > 0 ? Number(listing.weight_kg) : 1;
     const length = Number(listing.length_cm) > 0 ? Number(listing.length_cm) : 20;
     const width = Number(listing.width_cm) > 0 ? Number(listing.width_cm) : 15;
@@ -60,7 +71,10 @@ Deno.serve(async (req: Request) => {
       .select("user_id")
       .eq("id", listing.picker_id)
       .maybeSingle();
-    if (pickerError) throw pickerError;
+    if (pickerError) {
+      console.error("Picker query error:", pickerError);
+      return response({ error: "Could not load seller details" }, 500);
+    }
     if (!picker) return response({ error: "Seller not found" }, 404);
 
     const { data: address, error: addressError } = await supabase
@@ -69,19 +83,22 @@ Deno.serve(async (req: Request) => {
       .eq("seller_id", picker.user_id)
       .eq("is_default", true)
       .maybeSingle();
-    if (addressError) throw addressError;
+    if (addressError) {
+      console.error("Address query error:", addressError);
+      return response({ error: "Could not load seller shipping address" }, 500);
+    }
     if (!address) return response({ error: "Seller shipping address is missing. The seller needs to add their shipping address before orders can be placed." }, 422);
 
     const credentials = btoa(`${publicKey}:${secretKey}`);
     const params = new URLSearchParams({
-      from_postal_code: address.postcode,
-      from_country: address.country_code,
+      from_postal_code: String(address.postcode),
+      from_country: String(address.country_code),
       to_postal_code: input.buyer_postcode.trim(),
       to_country: country,
       weight: weight.toFixed(3),
     });
 
-    console.log("Fetching SendCloud rates with params:", params.toString());
+    console.log("Fetching SendCloud rates:", { from: address.postcode, from_country: address.country_code, to: input.buyer_postcode, to_country: country, weight: weight.toFixed(3) });
 
     let sendcloudResponse: Response;
     try {
@@ -102,11 +119,18 @@ Deno.serve(async (req: Request) => {
 
     if (!sendcloudResponse.ok) {
       const body = await sendcloudResponse.text().catch(() => "");
-      console.error("SendCloud error response:", sendcloudResponse.status, body);
-      return response({ error: `Shipping rates are unavailable (${sendcloudResponse.status}). Please try again or contact support.` }, 502);
+      console.error("SendCloud error:", sendcloudResponse.status, body);
+      return response({ error: `Shipping rates are unavailable (status ${sendcloudResponse.status}). Please try again or contact support.` }, 502);
     }
 
-    const payload = await sendcloudResponse.json() as { shipping_methods?: Array<Record<string, unknown>> };
+    let payload: { shipping_methods?: Array<Record<string, unknown>> };
+    try {
+      payload = await sendcloudResponse.json();
+    } catch {
+      console.error("SendCloud returned non-JSON response");
+      return response({ error: "Shipping service returned an invalid response. Please try again." }, 502);
+    }
+
     const methods = Array.isArray(payload.shipping_methods) ? payload.shipping_methods : [];
     const rates = methods.map((method) => ({
       id: Number(method.id),
@@ -121,6 +145,7 @@ Deno.serve(async (req: Request) => {
     return response({ rates });
   } catch (error) {
     console.error("get-shipping-rates unexpected error:", error);
-    return response({ error: "An unexpected error occurred. Please try again." }, 500);
+    const msg = error instanceof Error ? error.message : String(error);
+    return response({ error: `Shipping calculation failed: ${msg}` }, 500);
   }
 });
