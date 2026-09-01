@@ -1,0 +1,2 @@
+[functions.get-shipping-rates]
+verify_jwt = false

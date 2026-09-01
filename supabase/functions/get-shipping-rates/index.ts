@@ -56,8 +56,8 @@ Deno.serve(async (req: Request) => {
       .eq("id", input.product_id)
       .maybeSingle();
     if (listingError) {
-      console.error("Listing query error:", listingError);
-      return response({ error: "Could not load product details" }, 500);
+      console.error("Listing query error:", JSON.stringify(listingError));
+      return response({ error: `Listing query failed: ${listingError.message || JSON.stringify(listingError)}` }, 500);
     }
     if (!listing) return response({ error: "Product not found" }, 404);
 
