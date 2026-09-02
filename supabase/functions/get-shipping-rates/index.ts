@@ -104,7 +104,7 @@ Deno.serve(async (req: Request) => {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 15000);
-      sendcloudResponse = await fetch(`https://panel.sendcloud.sc/api/v2/shipping-methods?${params}`, {
+      sendcloudResponse = await fetch(`https://panel.sendcloud.sc/api/v2/shipping-products?${params}`, {
         headers: { Authorization: `Basic ${credentials}`, Accept: "application/json" },
         signal: controller.signal,
       });
