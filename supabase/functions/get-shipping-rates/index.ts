@@ -120,7 +120,7 @@ Deno.serve(async (req: Request) => {
     if (!sendcloudResponse.ok) {
       const body = await sendcloudResponse.text().catch(() => "");
       console.error("SendCloud error:", sendcloudResponse.status, body);
-      return response({ error: `Shipping rates are unavailable (status ${sendcloudResponse.status}). Please try again or contact support.` }, 502);
+      return response({ error: `Shipping rates are unavailable (status ${sendcloudResponse.status}). ${body}` }, 502);
     }
 
     let payload: { shipping_methods?: Array<Record<string, unknown>> };
