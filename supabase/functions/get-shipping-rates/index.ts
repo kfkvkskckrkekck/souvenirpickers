@@ -90,15 +90,17 @@ Deno.serve(async (req: Request) => {
     if (!address) return response({ error: "Seller shipping address is missing. The seller needs to add their shipping address before orders can be placed." }, 422);
 
     const credentials = btoa(`${publicKey}:${secretKey}`);
+    const weightGrams = Math.max(1, Math.round(weight * 1000));
     const params = new URLSearchParams({
       from_postal_code: String(address.postcode),
       from_country: String(address.country_code),
       to_postal_code: input.buyer_postcode.trim(),
       to_country: country,
-      weight: weight.toFixed(3),
+      weight: String(weightGrams),
+      weight_unit: "gram",
     });
 
-    console.log("Fetching SendCloud rates:", { from: address.postcode, from_country: address.country_code, to: input.buyer_postcode, to_country: country, weight: weight.toFixed(3) });
+    console.log("Fetching SendCloud rates:", { from: address.postcode, from_country: address.country_code, to: input.buyer_postcode, to_country: country, weight: weightGrams });
 
     let sendcloudResponse: Response;
     try {
