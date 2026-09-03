@@ -125,7 +125,7 @@ Deno.serve(async (req: Request) => {
       return response({ error: `Shipping rates are unavailable (status ${sendcloudResponse.status}). ${body}` }, 502);
     }
 
-    let payload: { shipping_methods?: Array<Record<string, unknown>> };
+    let payload: Record<string, unknown>;
     try {
       payload = await sendcloudResponse.json();
     } catch {
@@ -133,17 +133,30 @@ Deno.serve(async (req: Request) => {
       return response({ error: "Shipping service returned an invalid response. Please try again." }, 502);
     }
 
-    const methods = Array.isArray(payload.shipping_methods) ? payload.shipping_methods : [];
-    const rates = methods.map((method) => ({
-      id: Number(method.id),
-      name: String(method.name ?? method.service_point_name ?? "Shipping service"),
-      carrier: String(method.carrier ?? method.carrier_name ?? "Sendcloud"),
-      min_days: Number(method.min_days ?? method.min_delivery_days ?? 0),
-      max_days: Number(method.max_days ?? method.max_delivery_days ?? 0),
-      price: Number(method.price ?? method.shipping_price ?? 0),
-    })).filter((rate) => Number.isFinite(rate.id) && Number.isFinite(rate.price));
+    console.log("SendCloud response keys:", Object.keys(payload));
+    console.log("SendCloud response sample:", JSON.stringify(payload).slice(0, 2000));
 
-    if (rates.length === 0) return response({ error: "No shipping options are available for this destination. Please contact the seller." }, 404);
+    const products = Array.isArray(payload.products) ? payload.products
+      : Array.isArray(payload.shipping_products) ? payload.shipping_products
+      : Array.isArray(payload.shipping_methods) ? payload.shipping_methods
+      : Array.isArray(payload.results) ? payload.results
+      : [];
+
+    const rates = products.map((product) => {
+      const p = product as Record<string, unknown>;
+      return {
+        id: Number(p.id ?? p.shipping_method_id ?? p.method_id ?? 0),
+        name: String(p.name ?? p.service_point_name ?? p.product_name ?? "Shipping service"),
+        carrier: String(p.carrier ?? p.carrier_name ?? "Sendcloud"),
+        min_days: Number(p.min_days ?? p.min_delivery_days ?? p.min_business_days ?? 0),
+        max_days: Number(p.max_days ?? p.max_delivery_days ?? p.max_business_days ?? 0),
+        price: Number(p.price ?? p.shipping_price ?? p.cost ?? 0),
+      };
+    }).filter((rate) => Number.isFinite(rate.id) && Number.isFinite(rate.price));
+
+    if (rates.length === 0) {
+      return response({ error: `No shipping options are available for this destination. Response: ${JSON.stringify(payload).slice(0, 500)}` }, 404);
+    }
     return response({ rates });
   } catch (error) {
     console.error("get-shipping-rates unexpected error:", error);
