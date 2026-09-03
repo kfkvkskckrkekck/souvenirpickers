@@ -56,15 +56,11 @@ Deno.serve(async (req: Request) => {
       .eq("id", input.product_id)
       .maybeSingle();
     if (listingError) {
-      console.error("Listing query error:", JSON.stringify(listingError));
-      return response({ error: `Listing query failed: ${listingError.message || JSON.stringify(listingError)}` }, 500);
+      return response({ error: "Could not load product details" }, 500);
     }
     if (!listing) return response({ error: "Product not found" }, 404);
 
     const weight = Number(listing.weight_kg) > 0 ? Number(listing.weight_kg) : 1;
-    const length = Number(listing.length_cm) > 0 ? Number(listing.length_cm) : 20;
-    const width = Number(listing.width_cm) > 0 ? Number(listing.width_cm) : 15;
-    const height = Number(listing.height_cm) > 0 ? Number(listing.height_cm) : 10;
 
     const { data: picker, error: pickerError } = await supabase
       .from("picker_profiles")
@@ -72,7 +68,6 @@ Deno.serve(async (req: Request) => {
       .eq("id", listing.picker_id)
       .maybeSingle();
     if (pickerError) {
-      console.error("Picker query error:", pickerError);
       return response({ error: "Could not load seller details" }, 500);
     }
     if (!picker) return response({ error: "Seller not found" }, 404);
@@ -84,30 +79,34 @@ Deno.serve(async (req: Request) => {
       .eq("is_default", true)
       .maybeSingle();
     if (addressError) {
-      console.error("Address query error:", addressError);
       return response({ error: "Could not load seller shipping address" }, 500);
     }
     if (!address) return response({ error: "Seller shipping address is missing. The seller needs to add their shipping address before orders can be placed." }, 422);
 
     const credentials = btoa(`${publicKey}:${secretKey}`);
+    const authHeader = { Authorization: `Basic ${credentials}`, Accept: "application/json" };
+    const fromCountry = String(address.country_code);
+    const toCountry = country;
+    const fromPostalCode = String(address.postcode);
+    const toPostalCode = input.buyer_postcode.trim();
     const weightGrams = Math.max(1, Math.round(weight * 1000));
-    const params = new URLSearchParams({
-      from_postal_code: String(address.postcode),
-      from_country: String(address.country_code),
-      to_postal_code: input.buyer_postcode.trim(),
-      to_country: country,
+
+    // Step 1: Get available shipping products for this route
+    const productsParams = new URLSearchParams({
+      from_postal_code: fromPostalCode,
+      from_country: fromCountry,
+      to_postal_code: toPostalCode,
+      to_country: toCountry,
       weight: String(weightGrams),
       weight_unit: "gram",
     });
 
-    console.log("Fetching SendCloud rates:", { from: address.postcode, from_country: address.country_code, to: input.buyer_postcode, to_country: country, weight: weightGrams });
-
-    let sendcloudResponse: Response;
+    let productsResponse: Response;
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 15000);
-      sendcloudResponse = await fetch(`https://panel.sendcloud.sc/api/v2/shipping-products?${params}`, {
-        headers: { Authorization: `Basic ${credentials}`, Accept: "application/json" },
+      productsResponse = await fetch(`https://panel.sendcloud.sc/api/v2/shipping-products?${productsParams}`, {
+        headers: authHeader,
         signal: controller.signal,
       });
       clearTimeout(timeout);
@@ -115,51 +114,99 @@ Deno.serve(async (req: Request) => {
       const msg = fetchError instanceof DOMException && fetchError.name === "AbortError"
         ? "Shipping rates request timed out. Please try again."
         : "Could not reach the shipping service. Please try again.";
-      console.error("SendCloud fetch failed:", fetchError);
       return response({ error: msg }, 502);
     }
 
-    if (!sendcloudResponse.ok) {
-      const body = await sendcloudResponse.text().catch(() => "");
-      console.error("SendCloud error:", sendcloudResponse.status, body);
-      return response({ error: `Shipping rates are unavailable (status ${sendcloudResponse.status}). ${body}` }, 502);
+    if (!productsResponse.ok) {
+      return response({ error: "Shipping rates are currently unavailable. Please try again or contact support." }, 502);
     }
 
-    let payload: Record<string, unknown>;
+    let productsData: unknown;
     try {
-      payload = await sendcloudResponse.json();
+      productsData = await productsResponse.json();
     } catch {
-      console.error("SendCloud returned non-JSON response");
       return response({ error: "Shipping service returned an invalid response. Please try again." }, 502);
     }
 
-    console.log("SendCloud response keys:", Object.keys(payload));
-    console.log("SendCloud response sample:", JSON.stringify(payload).slice(0, 2000));
+    // shipping-products returns a flat array of product objects, each with a "methods" array
+    const products = Array.isArray(productsData) ? productsData : [];
+    if (products.length === 0) {
+      return response({ error: "No shipping options are available for this destination. Please contact the seller." }, 404);
+    }
 
-    const products = Array.isArray(payload.products) ? payload.products
-      : Array.isArray(payload.shipping_products) ? payload.shipping_products
-      : Array.isArray(payload.shipping_methods) ? payload.shipping_methods
-      : Array.isArray(payload.results) ? payload.results
-      : [];
-
-    const rates = products.map((product) => {
+    // Collect all methods with their product info
+    type MethodInfo = {
+      method_id: number;
+      method_name: string;
+      product_name: string;
+      carrier: string;
+    };
+    const allMethods: MethodInfo[] = [];
+    for (const product of products) {
       const p = product as Record<string, unknown>;
-      return {
-        id: Number(p.id ?? p.shipping_method_id ?? p.method_id ?? 0),
-        name: String(p.name ?? p.service_point_name ?? p.product_name ?? "Shipping service"),
-        carrier: String(p.carrier ?? p.carrier_name ?? "Sendcloud"),
-        min_days: Number(p.min_days ?? p.min_delivery_days ?? p.min_business_days ?? 0),
-        max_days: Number(p.max_days ?? p.max_delivery_days ?? p.max_business_days ?? 0),
-        price: Number(p.price ?? p.shipping_price ?? p.cost ?? 0),
-      };
-    }).filter((rate) => Number.isFinite(rate.id) && Number.isFinite(rate.price));
+      const productName = String(p.name ?? "Shipping service");
+      const carrier = String(p.carrier ?? "Sendcloud");
+      const methods = Array.isArray(p.methods) ? p.methods : [];
+      for (const method of methods) {
+        const m = method as Record<string, unknown>;
+        const methodId = Number(m.id);
+        if (Number.isFinite(methodId) && methodId > 0) {
+          allMethods.push({
+            method_id: methodId,
+            method_name: String(m.name ?? productName),
+            product_name: productName,
+            carrier,
+          });
+        }
+      }
+    }
+
+    if (allMethods.length === 0) {
+      return response({ error: "No shipping options are available for this destination. Please contact the seller." }, 404);
+    }
+
+    // Step 2: Get prices for each method (limited to first 10 to avoid too many calls)
+    const methodsToPrice = allMethods.slice(0, 10);
+    const pricePromises = methodsToPrice.map(async (method) => {
+      const priceParams = new URLSearchParams({
+        shipping_method_id: String(method.method_id),
+        from_country: fromCountry,
+        to_country: toCountry,
+        weight: String(weightGrams),
+        weight_unit: "gram",
+      });
+      try {
+        const priceResp = await fetch(`https://panel.sendcloud.sc/api/v2/shipping-price?${priceParams}`, {
+          headers: authHeader,
+        });
+        if (!priceResp.ok) return null;
+        const priceData = await priceResp.json() as Record<string, unknown>;
+        const price = Number(priceData.price ?? priceData.shipping_price ?? 0);
+        const minDays = Number(priceData.min_days ?? priceData.min_delivery_days ?? 0);
+        const maxDays = Number(priceData.max_days ?? priceData.max_delivery_days ?? 0);
+        return {
+          id: method.method_id,
+          name: method.method_name,
+          carrier: method.carrier,
+          min_days: minDays,
+          max_days: maxDays,
+          price,
+        };
+      } catch {
+        return null;
+      }
+    });
+
+    const priceResults = await Promise.all(pricePromises);
+    const rates = priceResults
+      .filter((r): r is NonNullable<typeof r> => r !== null)
+      .filter((r) => Number.isFinite(r.price));
 
     if (rates.length === 0) {
-      return response({ error: `No shipping options are available for this destination. Response: ${JSON.stringify(payload).slice(0, 500)}` }, 404);
+      return response({ error: "No shipping options are available for this destination. Please contact the seller." }, 404);
     }
     return response({ rates });
   } catch (error) {
-    console.error("get-shipping-rates unexpected error:", error);
     const msg = error instanceof Error ? error.message : String(error);
     return response({ error: `Shipping calculation failed: ${msg}` }, 500);
   }
