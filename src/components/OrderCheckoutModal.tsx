@@ -24,7 +24,7 @@ const COUNTRIES = [
   'Thailand', 'Vietnam', 'Malaysia', 'Indonesia', 'Philippines', 'Cambodia',
   'Laos', 'Myanmar', 'Brunei', 'China', 'Hong Kong', 'Taiwan', 'Macau',
   'Mongolia', 'Kazakhstan', 'Uzbekistan', 'Turkmenistan', 'Kyrgyzstan',
-  'Tajikistan', 'Afghanistan', 'Iran', 'Iraq', 'Syria', 'Yemen', 'Oman'
+  'Tajikistan', 'Afghanistan', 'Iran', 'Iraq', 'Syria', 'Yemen'
 ].sort();
 
 const COUNTRY_NAME_TO_CODE: Record<string, string> = {
@@ -204,7 +204,9 @@ export function OrderCheckoutModal({ listing, onClose, onOrderCreated }: OrderCh
           shipping_cost: shippingTotal,
           shipping_carrier: selectedShippingRate.carrier,
           shipping_service: selectedShippingRate.name,
-          estimated_delivery_days: `${selectedShippingRate.min_days}-${selectedShippingRate.max_days} business days`,
+          estimated_delivery_days: selectedShippingRate.max_days > 0
+            ? `${selectedShippingRate.min_days}-${selectedShippingRate.max_days} business days`
+            : null,
           delivery_address: isGift ? giftRecipientAddressFormatted : (deliveryAddressFormatted || null),
           delivery_street: isGift ? giftStreet : deliveryStreet,
           delivery_street_line2: isGift ? `${giftBuilding || ''}${giftApartment ? ' ' + giftApartment : ''}`.trim() || null : `${deliveryBuilding || ''}${deliveryApartment ? ' ' + deliveryApartment : ''}`.trim() || null,
@@ -239,8 +241,8 @@ export function OrderCheckoutModal({ listing, onClose, onOrderCreated }: OrderCh
           changed_by: user.id,
         });
 
-      onOrderCreated(data);
-      onClose();
+      setCreatedOrderId(data.id);
+      setShowPayment(true);
     } catch (err) {
 
       setError('Failed to create order. Please try again.');

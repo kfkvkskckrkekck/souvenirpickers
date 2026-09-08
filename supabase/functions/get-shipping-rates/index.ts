@@ -61,6 +61,9 @@ Deno.serve(async (req: Request) => {
     if (!listing) return response({ error: "Product not found" }, 404);
 
     const weight = Number(listing.weight_kg) > 0 ? Number(listing.weight_kg) : 1;
+    const length = Number(listing.length_cm) > 0 ? Number(listing.length_cm) : null;
+    const width = Number(listing.width_cm) > 0 ? Number(listing.width_cm) : null;
+    const height = Number(listing.height_cm) > 0 ? Number(listing.height_cm) : null;
 
     const { data: picker, error: pickerError } = await supabase
       .from("picker_profiles")
@@ -100,6 +103,16 @@ Deno.serve(async (req: Request) => {
       weight: String(weightGrams),
       weight_unit: "gram",
     });
+    // Include package dimensions so Sendcloud only returns methods that can
+    // actually fit the parcel (each product has a max_dimensions limit).
+    if (length && width && height) {
+      productsParams.set("length", String(length));
+      productsParams.set("length_unit", "centimeter");
+      productsParams.set("width", String(width));
+      productsParams.set("width_unit", "centimeter");
+      productsParams.set("height", String(height));
+      productsParams.set("height_unit", "centimeter");
+    }
 
     let productsResponse: Response;
     try {
@@ -140,6 +153,7 @@ Deno.serve(async (req: Request) => {
       method_name: string;
       product_name: string;
       carrier: string;
+      lead_time_hours: unknown;
     };
     const allMethods: MethodInfo[] = [];
     for (const product of products) {
@@ -156,9 +170,20 @@ Deno.serve(async (req: Request) => {
             method_name: String(m.name ?? productName),
             product_name: productName,
             carrier,
+            lead_time_hours: m.lead_time_hours,
           });
         }
       }
+    }
+
+    // shipping-products exposes expected transit time as lead_time_hours,
+    // keyed by [from_country][to_country] -> hours.
+    function leadTimeDays(leadTimeHours: unknown, from: string, to: string): number {
+      if (!leadTimeHours || typeof leadTimeHours !== "object") return 0;
+      const byFrom = (leadTimeHours as Record<string, unknown>)[from];
+      if (!byFrom || typeof byFrom !== "object") return 0;
+      const hours = Number((byFrom as Record<string, unknown>)[to]);
+      return Number.isFinite(hours) && hours > 0 ? Math.max(1, Math.ceil(hours / 24)) : 0;
     }
 
     if (allMethods.length === 0) {
@@ -172,6 +197,8 @@ Deno.serve(async (req: Request) => {
         shipping_method_id: String(method.method_id),
         from_country: fromCountry,
         to_country: toCountry,
+        from_postal_code: fromPostalCode,
+        to_postal_code: toPostalCode,
         weight: String(weightGrams),
         weight_unit: "gram",
       });
@@ -180,16 +207,23 @@ Deno.serve(async (req: Request) => {
           headers: authHeader,
         });
         if (!priceResp.ok) return null;
-        const priceData = await priceResp.json() as Record<string, unknown>;
-        const price = Number(priceData.price ?? priceData.shipping_price ?? 0);
-        const minDays = Number(priceData.min_days ?? priceData.min_delivery_days ?? 0);
-        const maxDays = Number(priceData.max_days ?? priceData.max_delivery_days ?? 0);
+        // shipping-price returns an ARRAY of entries (one per destination
+        // country); since to_country is always passed above, Sendcloud
+        // resolves it to a single matching entry. price/currency are null
+        // when the carrier has no rate for this lane.
+        const priceData = await priceResp.json();
+        const entries = Array.isArray(priceData) ? priceData as Record<string, unknown>[] : [];
+        const entry = entries.find((e) => String(e.to_country ?? "").toUpperCase() === toCountry) ?? entries[0];
+        if (!entry || entry.price === null || entry.price === undefined) return null;
+        const price = Number(entry.price);
+        if (!Number.isFinite(price) || price <= 0) return null;
+        const days = leadTimeDays(method.lead_time_hours, fromCountry, toCountry);
         return {
           id: method.method_id,
           name: method.method_name,
           carrier: method.carrier,
-          min_days: minDays,
-          max_days: maxDays,
+          min_days: days,
+          max_days: days,
           price,
         };
       } catch {
@@ -200,7 +234,7 @@ Deno.serve(async (req: Request) => {
     const priceResults = await Promise.all(pricePromises);
     const rates = priceResults
       .filter((r): r is NonNullable<typeof r> => r !== null)
-      .filter((r) => Number.isFinite(r.price));
+      .sort((a, b) => a.price - b.price);
 
     if (rates.length === 0) {
       return response({ error: "No shipping options are available for this destination. Please contact the seller." }, 404);

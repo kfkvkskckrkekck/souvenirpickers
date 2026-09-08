@@ -22,9 +22,10 @@ export default function OrderConfirmation({
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
 
-  const canConfirm =
-    (orderStatus === 'in_progress' || orderStatus === 'delivered') &&
-    !goodsConfirmed;
+  // Mirrors the statuses collector_confirm_delivery() itself accepts, so the
+  // button only appears when the RPC call behind it would actually succeed.
+  const CONFIRMABLE_STATUSES = ['shipped', 'in_progress', 'confirmed', 'delivered'];
+  const canConfirm = CONFIRMABLE_STATUSES.includes(orderStatus) && !goodsConfirmed;
 
   const handleConfirm = async () => {
     if (!showFeedback) {

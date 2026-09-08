@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { DollarSign, TrendingUp, Clock, CheckCircle, Loader, Calendar, Download, Info, Shield, Zap } from 'lucide-react';
+import { DollarSign, TrendingUp, Clock, Loader, Calendar, Download, Info, Shield, Zap } from 'lucide-react';
 import { PayoutSetup } from './PayoutSetup';
 
 export default function EarningsView() {
@@ -26,18 +26,14 @@ export default function EarningsView() {
       setLoading(true);
       setCheckingVerification(true);
 
-      const [earningsRes, payoutsRes, payoutInfoRes] = await Promise.all([
+      const [earningsRes, payoutInfoRes] = await Promise.all([
+        // picker_earnings has one row PER ORDER, not one aggregate row per
+        // picker - fetch them all and roll up the totals here.
         supabase
           .from('picker_earnings')
           .select('*')
           .eq('picker_id', user?.id)
-          .maybeSingle(),
-        supabase
-          .from('picker_payouts')
-          .select('*')
-          .eq('picker_id', user?.id)
-          .order('created_at', { ascending: false })
-          .limit(50),
+          .order('created_at', { ascending: false }),
         supabase
           .from('picker_payout_info')
           .select('*')
@@ -45,12 +41,38 @@ export default function EarningsView() {
           .maybeSingle(),
       ]);
 
-      if (earningsRes.error && earningsRes.error.code !== 'PGRST116') throw earningsRes.error;
-      if (payoutsRes.error) throw payoutsRes.error;
+      if (earningsRes.error) throw earningsRes.error;
       if (payoutInfoRes.error && payoutInfoRes.error.code !== 'PGRST116') throw payoutInfoRes.error;
 
-      setEarnings(earningsRes.data);
-      setPayouts(payoutsRes.data || []);
+      const cutoff = timeframe === 'all' ? null : new Date();
+      if (cutoff) cutoff.setDate(cutoff.getDate() - (timeframe === 'week' ? 7 : 30));
+      const allRows = earningsRes.data || [];
+      const rows = cutoff ? allRows.filter((r) => new Date(r.created_at) >= cutoff) : allRows;
+
+      const rowTotal = (row: any) => Number(row.net_amount || 0) + Number(row.shipping_amount || 0);
+      const paidRows = rows.filter((r) => r.status === 'paid');
+      const pendingRows = rows.filter((r) => r.status !== 'paid');
+      const lastPayoutAt = paidRows.reduce<string | null>(
+        (latest, r) => (r.paid_at && (!latest || r.paid_at > latest) ? r.paid_at : latest),
+        null
+      );
+
+      setEarnings({
+        total_earned: rows.reduce((sum, r) => sum + rowTotal(r), 0),
+        pending_payout: pendingRows.reduce((sum, r) => sum + rowTotal(r), 0),
+        total_paid_out: paidRows.reduce((sum, r) => sum + rowTotal(r), 0),
+        last_payout_at: lastPayoutAt,
+      });
+      setPayouts(
+        paidRows.map((r) => ({
+          id: r.id,
+          created_at: r.created_at,
+          order_id: r.order_id,
+          amount: rowTotal(r),
+          status: 'paid',
+          arrival_date: r.paid_at,
+        }))
+      );
       setPayoutInfo(payoutInfoRes.data);
 
       // If there's a stripe_account_id, check if it's verified
@@ -85,7 +107,7 @@ export default function EarningsView() {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'EUR',
     }).format(amount || 0);
   };
 
@@ -186,7 +208,7 @@ export default function EarningsView() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white shadow-lg">
           <div className="flex items-center gap-3 mb-2">
             <DollarSign className="w-5 h-5" />
@@ -196,22 +218,13 @@ export default function EarningsView() {
           <p className="text-green-100 text-xs mt-1">Lifetime earnings</p>
         </div>
 
-        <div className="bg-white rounded-xl p-6 border-2 border-green-200 shadow-sm">
-          <div className="flex items-center gap-3 mb-2">
-            <CheckCircle className="w-5 h-5 text-green-600" />
-            <p className="text-gray-600 text-sm font-medium">Available</p>
-          </div>
-          <p className="text-3xl font-bold text-gray-900">{formatCurrency(earnings?.available_balance || 0)}</p>
-          <p className="text-gray-500 text-xs mt-1">Ready for payout</p>
-        </div>
-
         <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
           <div className="flex items-center gap-3 mb-2">
             <Clock className="w-5 h-5 text-yellow-600" />
-            <p className="text-gray-600 text-sm font-medium">Product in Escrow</p>
+            <p className="text-gray-600 text-sm font-medium">Pending Payout</p>
           </div>
           <p className="text-3xl font-bold text-gray-900">{formatCurrency(earnings?.pending_payout || 0)}</p>
-          <p className="text-gray-500 text-xs mt-1">Released on delivery</p>
+          <p className="text-gray-500 text-xs mt-1">In escrow or processing</p>
         </div>
 
         <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">

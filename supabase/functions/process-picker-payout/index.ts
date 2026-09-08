@@ -124,6 +124,37 @@ Deno.serve(async (req: Request) => {
       },
     });
 
+    // The transfer above only moves funds into the picker's connected
+    // Stripe account balance. Reaching their actual bank account requires a
+    // separate payout - and their account's payout schedule defaults to
+    // "manual" (see create-express-account), so nothing pushes it out on its
+    // own. Create that payout explicitly here.
+    let bankPayoutId: string | null = null;
+    let bankPayoutError: string | null = null;
+    try {
+      const bankPayout = await stripe.payouts.create(
+        {
+          amount: payoutAmount,
+          currency: earning.currency || "eur",
+          metadata: {
+            order_id: resolved_order_id!,
+            picker_id,
+            earning_id: earning.id,
+            transfer_id: transfer.id,
+          },
+        },
+        { stripeAccount: payoutInfo.stripe_account_id }
+      );
+      bankPayoutId = bankPayout.id;
+    } catch (payoutError) {
+      // The transfer already succeeded (funds are in the connected account's
+      // balance) even if this fails - don't fail the whole request. Stripe's
+      // own scheduled payout, or a manual payout from the Express dashboard,
+      // can still move it from here.
+      bankPayoutError = payoutError instanceof Error ? payoutError.message : String(payoutError);
+      console.error("Bank payout failed (transfer still succeeded):", bankPayoutError);
+    }
+
     // Update earning status to paid
     await supabase
       .from("picker_earnings")
@@ -132,6 +163,23 @@ Deno.serve(async (req: Request) => {
         paid_at: new Date().toISOString(),
       })
       .eq("id", earning.id);
+
+    // Record the payout for the picker's payout history
+    await supabase.from("picker_payouts").insert({
+      picker_id,
+      amount: payoutAmount / 100,
+      currency: earning.currency || "eur",
+      status: bankPayoutId ? "paid" : "processing",
+      stripe_payout_id: bankPayoutId,
+      stripe_transfer_id: transfer.id,
+      failure_reason: bankPayoutError,
+      paid_at: bankPayoutId ? new Date().toISOString() : null,
+      metadata: {
+        order_id: resolved_order_id,
+        escrow_id: resolved_escrow_id,
+        earning_id: earning.id,
+      },
+    });
 
     // Release escrow
     if (resolved_escrow_id) {
@@ -159,12 +207,14 @@ Deno.serve(async (req: Request) => {
       user_id: picker_id,
       type: "payout_completed",
       title: "Payment Received",
-      message: `Your payout of ${(payoutAmount / 100).toFixed(2)} ${(earning.currency || "eur").toUpperCase()} has been transferred to your account`,
+      message: bankPayoutId
+        ? `Your payout of ${(payoutAmount / 100).toFixed(2)} ${(earning.currency || "eur").toUpperCase()} is on its way to your bank account`
+        : `Your payout of ${(payoutAmount / 100).toFixed(2)} ${(earning.currency || "eur").toUpperCase()} has been added to your account balance`,
       link: "/earnings",
     });
 
     return new Response(
-      JSON.stringify({ success: true, transfer_id: transfer.id }),
+      JSON.stringify({ success: true, transfer_id: transfer.id, bank_payout_id: bankPayoutId, bank_payout_error: bankPayoutError }),
       {
         status: 200,
         headers: {

@@ -96,6 +96,36 @@ Deno.serve(async (req: Request) => {
       detailsSubmitted: payoutInfo?.details_submitted
     });
 
+    // Idempotency guard: React StrictMode (dev), a retry, or the user
+    // reopening the payment step can call this twice for the same order.
+    // Reuse the existing pending intent instead of creating a second Stripe
+    // PaymentIntent and violating the one-row-per-order unique constraint on
+    // payment_escrow.
+    const { data: existingIntent, error: existingIntentError } = await supabase
+      .from('payment_intents')
+      .select('client_secret, stripe_payment_intent_id, amount, currency')
+      .eq('order_id', orderId)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (existingIntentError) {
+      console.error('Error checking for existing payment intent:', existingIntentError);
+    }
+
+    if (existingIntent) {
+      return new Response(
+        JSON.stringify({
+          clientSecret: existingIntent.client_secret,
+          paymentIntentId: existingIntent.stripe_payment_intent_id,
+          amount: existingIntent.amount,
+          currency: existingIntent.currency,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const amountInCents = Math.round(amount * 100);
 
     // Simple payment intent - all payments go to platform account

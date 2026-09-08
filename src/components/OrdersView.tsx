@@ -161,40 +161,6 @@ export function OrdersView({ onViewChange, initialOrderId }: OrdersViewProps = {
     }
   };
 
-  const confirmDelivery = async (orderId: string) => {
-    if (!profile) return;
-
-    try {
-      const order = orders.find(o => o.id === orderId);
-      if (!order?.escrow) return;
-
-      // Update order status to 'received'
-      const { error: statusError } = await supabase
-        .from('orders')
-        .update({
-          status: 'received',
-          goods_confirmed_at: new Date().toISOString()
-        })
-        .eq('id', orderId);
-
-      if (statusError) throw statusError;
-
-      // Release escrow payment to picker
-      const { error } = await supabase.rpc('release_escrow_to_picker', {
-        escrow_id: order.escrow.id,
-        picker_user_id: order.picker_id
-      });
-
-      if (error) throw error;
-
-      toast.showToast('Delivery confirmed! Payment released to picker.', 'success');
-      await loadOrders();
-    } catch (error) {
-      console.error('Error confirming delivery:', error);
-      toast.showToast('Failed to confirm delivery', 'error');
-    }
-  };
-
   const handlePaymentSuccess = async () => {
     if (!paymentModalOrder) return;
 
@@ -1022,22 +988,12 @@ export function OrdersView({ onViewChange, initialOrderId }: OrdersViewProps = {
                     )}
 
                     {profile?.user_type === 'client' && order.status === 'shipped' && (
-                      <>
-                        {!order.goods_confirmed && (
-                          <button
-                            onClick={() => confirmDelivery(order.id)}
-                            className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
-                          >
-                            ✓ Confirm Delivery
-                          </button>
-                        )}
-                        <button
-                          onClick={() => setDisputingOrder(order.id)}
-                          className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
-                        >
-                          ⚠ File Dispute
-                        </button>
-                      </>
+                      <button
+                        onClick={() => setDisputingOrder(order.id)}
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
+                      >
+                        ⚠ File Dispute
+                      </button>
                     )}
 
                     {profile?.user_type === 'client' && order.status === 'processing' && (

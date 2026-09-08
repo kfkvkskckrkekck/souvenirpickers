@@ -1,32 +1,32 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-console.log('🔧 Initializing Supabase client...', {
-  url: supabaseUrl ? `${supabaseUrl.substring(0, 30)}...` : 'MISSING',
-  anonKey: supabaseAnonKey ? `${supabaseAnonKey.substring(0, 20)}...` : 'MISSING'
-});
+// console.log('🔧 Initializing Supabase client...', {
+//   url: supabaseUrl ? `${supabaseUrl.substring(0, 30)}...` : 'MISSING',
+//   anonKey: supabaseAnonKey ? `${supabaseAnonKey.substring(0, 20)}...` : 'MISSING'
+// });
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('❌ CRITICAL: Environment variables missing!', {
+  console.error("❌ CRITICAL: Environment variables missing!", {
     VITE_SUPABASE_URL: supabaseUrl,
-    VITE_SUPABASE_ANON_KEY: supabaseAnonKey ? 'exists but empty' : 'missing'
+    VITE_SUPABASE_ANON_KEY: supabaseAnonKey ? "exists but empty" : "missing",
   });
   throw new Error(
-    '❌ CRITICAL ERROR: Supabase environment variables are missing!\n' +
-    'Please ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in your .env file.\n' +
-    'Expected project: bfqvzxczmvfteqbhgyvx'
+    "❌ CRITICAL ERROR: Supabase environment variables are missing!\n" +
+      "Please ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in your .env file.\n" +
+      "Expected project: bfqvzxczmvfteqbhgyvx",
   );
 }
 
-const EXPECTED_PROJECT_ID = 'bfqvzxczmvfteqbhgyvx';
+const EXPECTED_PROJECT_ID = "bfqvzxczmvfteqbhgyvx";
 if (!supabaseUrl.includes(EXPECTED_PROJECT_ID)) {
   throw new Error(
     `❌ CRITICAL ERROR: Wrong Supabase project detected!\n` +
-    `Expected project ID: ${EXPECTED_PROJECT_ID}\n` +
-    `Current URL: ${supabaseUrl}\n` +
-    `Please update your .env file with the correct project credentials.`
+      `Expected project ID: ${EXPECTED_PROJECT_ID}\n` +
+      `Current URL: ${supabaseUrl}\n` +
+      `Please update your .env file with the correct project credentials.`,
   );
 }
 
@@ -35,29 +35,29 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
-    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-    storageKey: 'souvenirpickers-auth',
-    flowType: 'pkce'
+    storage: typeof window !== "undefined" ? window.localStorage : undefined,
+    storageKey: "souvenirpickers-auth",
+    flowType: "pkce",
   },
   global: {
     headers: {
-      'apikey': supabaseAnonKey
-    }
-  }
+      apikey: supabaseAnonKey,
+    },
+  },
 });
 
-console.log('✅ Supabase client initialized successfully');
+console.log("✅ Supabase client initialized successfully");
 
 export type Profile = {
   id: string;
   email: string;
   full_name: string;
-  user_type: 'picker' | 'client';
+  user_type: "picker" | "client";
   avatar_url?: string;
   bio?: string;
   trial_started_at: string;
   trial_ends_at: string;
-  subscription_status: 'trial' | 'active' | 'past_due' | 'cancelled';
+  subscription_status: "trial" | "active" | "past_due" | "cancelled";
   subscription_started_at?: string;
   last_payment_date?: string;
   next_payment_due?: string;
@@ -91,7 +91,7 @@ export type PickerProfile = {
   rating: number;
   total_reviews: number;
   verified: boolean;
-  verification_status?: 'unverified' | 'pending' | 'verified' | 'rejected';
+  verification_status?: "unverified" | "pending" | "verified" | "rejected";
   verification_documents?: string[];
   verification_notes?: string;
   verified_at?: string;
@@ -119,7 +119,7 @@ export type Listing = {
   length_cm?: number;
   width_cm?: number;
   height_cm?: number;
-  package_size_preset?: 'small' | 'medium' | 'large' | 'xlarge' | 'custom';
+  package_size_preset?: "small" | "medium" | "large" | "xlarge" | "custom";
   available: boolean;
   created_at: string;
   updated_at: string;
@@ -134,7 +134,7 @@ export type Request = {
   region: string;
   category: string;
   budget?: number;
-  status: 'open' | 'assigned' | 'in_progress' | 'completed' | 'cancelled';
+  status: "open" | "assigned" | "in_progress" | "completed" | "cancelled";
   created_at: string;
   updated_at: string;
 };
@@ -176,7 +176,7 @@ export type ClientDesire = {
   longitude?: number;
   budget_min?: number;
   budget_max?: number;
-  urgency: 'low' | 'medium' | 'high';
+  urgency: "low" | "medium" | "high";
   active: boolean;
   created_at: string;
   updated_at: string;
@@ -185,7 +185,12 @@ export type ClientDesire = {
 export type PaymentMethod = {
   id: string;
   picker_id: string;
-  method_type: 'credit_card' | 'debit_card' | 'paypal' | 'bank_account' | 'other';
+  method_type:
+    | "credit_card"
+    | "debit_card"
+    | "paypal"
+    | "bank_account"
+    | "other";
   card_brand?: string;
   last_four?: string;
   cardholder_name: string;
@@ -219,7 +224,17 @@ export type Order = {
   client_id: string;
   picker_id: string;
   listing_id: string;
-  status: 'pending' | 'accepted' | 'in_progress' | 'paid' | 'label_created' | 'shipped' | 'delivered' | 'completed' | 'cancelled' | 'refunded';
+  status:
+    | "pending"
+    | "accepted"
+    | "in_progress"
+    | "paid"
+    | "label_created"
+    | "shipped"
+    | "delivered"
+    | "completed"
+    | "cancelled"
+    | "refunded";
   quantity: number;
   total_price: number;
   delivery_address?: string;
@@ -237,7 +252,7 @@ export type Order = {
   sendcloud_parcel_id?: string;
   label_purchased_at?: string;
   estimated_delivery_days?: string;
-  payment_status: 'pending' | 'paid' | 'refunded';
+  payment_status: "pending" | "paid" | "refunded";
   payment_intent_id?: string;
   notes?: string;
   is_gift?: boolean;
@@ -246,7 +261,11 @@ export type Order = {
   gift_message?: string;
   gift_recipient_address?: string;
   transportation_cost?: number;
-  shipping_quote_status?: 'quote_requested' | 'quote_provided' | 'quote_approved' | 'no_quote_needed';
+  shipping_quote_status?:
+    | "quote_requested"
+    | "quote_provided"
+    | "quote_approved"
+    | "no_quote_needed";
   shipping_notes?: string;
   quote_requested_at?: string;
   quote_provided_at?: string;
@@ -306,7 +325,11 @@ export type CartItem = {
   listing_id: string;
   quantity: number;
   transportation_cost?: number;
-  shipping_quote_status: 'no_quote_needed' | 'quote_requested' | 'quote_provided' | 'quote_expired';
+  shipping_quote_status:
+    | "no_quote_needed"
+    | "quote_requested"
+    | "quote_provided"
+    | "quote_expired";
   shipping_notes?: string;
   quote_requested_at?: string;
   quote_provided_at?: string;
@@ -352,7 +375,7 @@ export type ReportedUser = {
   reported_user_id: string;
   reason: string;
   description?: string;
-  status: 'pending' | 'reviewed' | 'resolved' | 'dismissed';
+  status: "pending" | "reviewed" | "resolved" | "dismissed";
   reviewed_by?: string;
   reviewed_at?: string;
   created_at: string;
@@ -391,7 +414,7 @@ export type PaymentIntent = {
   stripe_payment_intent_id: string;
   amount: number;
   currency: string;
-  status: 'pending' | 'succeeded' | 'failed' | 'canceled';
+  status: "pending" | "succeeded" | "failed" | "canceled";
   client_secret: string;
   metadata: Record<string, any>;
   created_at: string;
@@ -403,7 +426,7 @@ export type PaymentEscrow = {
   payment_intent_id: string;
   order_id: string;
   amount: number;
-  status: 'held' | 'released_to_picker' | 'refunded_to_client';
+  status: "held" | "released_to_picker" | "refunded_to_client";
   held_at: string;
   released_at?: string;
   released_to?: string;
@@ -418,7 +441,7 @@ export type Refund = {
   stripe_refund_id?: string;
   amount: number;
   reason?: string;
-  status: 'pending' | 'succeeded' | 'failed';
+  status: "pending" | "succeeded" | "failed";
   initiated_by: string;
   created_at: string;
 };

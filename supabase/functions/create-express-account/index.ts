@@ -54,12 +54,10 @@ Deno.serve(async (req: Request) => {
           card_payments: { requested: true },
           transfers: { requested: true },
         },
-        settings: {
-          payouts: {
-            schedule: { interval: "manual" },
-          },
-        },
       };
+      // No payouts.schedule override: leave Stripe's own automatic default
+      // in place so funds reach the picker's bank even if the explicit
+      // payout call in process-picker-payout ever fails for a transfer.
 
       // Only set country if explicitly passed — otherwise let Stripe show the picker
       if (country) {

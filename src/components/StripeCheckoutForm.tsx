@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Loader, AlertCircle, CheckCircle, CreditCard, Lock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -25,8 +25,11 @@ export function StripeCheckoutForm({ orderId, amount, onSuccess, onCancel }: Str
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const initialized = useRef(false);
 
   useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
     initializeStripe();
     createPaymentIntent();
   }, []);
@@ -125,9 +128,7 @@ export function StripeCheckoutForm({ orderId, amount, onSuccess, onCancel }: Str
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const handleSubmit = async () => {
     if (!stripe || !cardElement || !clientSecret) {
       return;
     }
@@ -177,17 +178,8 @@ export function StripeCheckoutForm({ orderId, amount, onSuccess, onCancel }: Str
     );
   }
 
-  if (loading) {
-    return (
-      <div className="text-center py-12">
-        <Loader className="w-12 h-12 text-blue-600 mx-auto mb-4 animate-spin" />
-        <p className="text-gray-600">Preparing secure payment...</p>
-      </div>
-    );
-  }
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="space-y-6">
       <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-6">
         <div className="flex items-start gap-3">
           <Lock className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
@@ -209,6 +201,12 @@ export function StripeCheckoutForm({ orderId, amount, onSuccess, onCancel }: Str
           id="card-element-checkout"
           className="p-4 border-2 border-gray-300 rounded-lg bg-white min-h-[44px]"
         />
+        {loading && (
+          <p className="mt-2 text-xs text-gray-500 flex items-center gap-1.5">
+            <Loader className="w-3 h-3 animate-spin" />
+            Setting up secure payment...
+          </p>
+        )}
       </div>
 
       {error && (
@@ -241,7 +239,8 @@ export function StripeCheckoutForm({ orderId, amount, onSuccess, onCancel }: Str
           Cancel
         </button>
         <button
-          type="submit"
+          type="button"
+          onClick={handleSubmit}
           disabled={processing || !stripe || !clientSecret || !!error}
           className="flex-1 bg-gradient-to-r from-blue-600 to-green-600 text-white py-4 px-6 rounded-lg font-semibold hover:from-blue-700 hover:to-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
@@ -262,6 +261,6 @@ export function StripeCheckoutForm({ orderId, amount, onSuccess, onCancel }: Str
       <p className="text-xs text-center text-gray-500">
         By completing this payment, you agree to our Terms of Service and acknowledge our escrow payment protection policy.
       </p>
-    </form>
+    </div>
   );
 }
