@@ -261,14 +261,7 @@ export type Order = {
   gift_message?: string;
   gift_recipient_address?: string;
   transportation_cost?: number;
-  shipping_quote_status?:
-    | "quote_requested"
-    | "quote_provided"
-    | "quote_approved"
-    | "no_quote_needed";
   shipping_notes?: string;
-  quote_requested_at?: string;
-  quote_provided_at?: string;
   estimated_weight_kg?: number;
   tracking_number?: string;
   carrier?: string;
@@ -325,14 +318,7 @@ export type CartItem = {
   listing_id: string;
   quantity: number;
   transportation_cost?: number;
-  shipping_quote_status:
-    | "no_quote_needed"
-    | "quote_requested"
-    | "quote_provided"
-    | "quote_expired";
   shipping_notes?: string;
-  quote_requested_at?: string;
-  quote_provided_at?: string;
   delivery_street?: string;
   delivery_street_line2?: string;
   delivery_city?: string;

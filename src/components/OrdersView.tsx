@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Package, Clock, CheckCircle, XCircle, DollarSign, MapPin, User, AlertTriangle, AlertCircle, Video, Upload, CreditCard, Loader, Truck, RefreshCw } from 'lucide-react';
+import { Package, Clock, CheckCircle, XCircle, DollarSign, MapPin, User, AlertTriangle, AlertCircle, Video, Upload, Truck, RefreshCw } from 'lucide-react';
 import { supabase, Order, Listing, Profile } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -37,12 +37,6 @@ export function OrdersView({ onViewChange, initialOrderId }: OrdersViewProps = {
   const toast = useToast();
   const [orders, setOrders] = useState<OrderWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
-  const [providingQuoteFor, setProvidingQuoteFor] = useState<string | null>(null);
-  const [shippingCost, setShippingCost] = useState('');
-  const [shippingNotes, setShippingNotes] = useState('');
-  const [estimatedWeight, setEstimatedWeight] = useState('');
-  const [acceptingQuote] = useState<string | null>(null);
-  const [cancelingQuote] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>('all');
   const [reviewingOrder, setReviewingOrder] = useState<OrderWithDetails | null>(null);
   const [disputingOrder, setDisputingOrder] = useState<string | null>(null);
@@ -87,9 +81,6 @@ export function OrdersView({ onViewChange, initialOrderId }: OrdersViewProps = {
       setPayoutSetupComplete(false);
     }
   };
-
-  const handleProvideShippingQuote = (_orderId: string) => undefined;
-  const handleCancelQuote = (_orderId: string) => undefined;
 
   const loadOrders = async () => {
     if (!profile) return;
@@ -545,220 +536,6 @@ export function OrdersView({ onViewChange, initialOrderId }: OrdersViewProps = {
                           {order.delivery_instructions && (
                             <p className="text-gray-500 mt-1 text-xs">
                               Instructions: {order.delivery_instructions}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Shipping Quote Section */}
-                  {false && order.shipping_quote_status === 'quote_requested' && profile?.user_type === 'picker' && (
-                    <div className="mb-4 p-4 bg-amber-50 border-2 border-amber-200 rounded-lg">
-                      <div className="flex items-start gap-3 mb-3">
-                        <DollarSign className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-gray-900 mb-1">Shipping Quote Requested</h4>
-                          <p className="text-sm text-gray-600 mb-3">
-                            The collector has requested a shipping quote. Check the delivery address below, get a quote from your preferred courier service (DHL, UPS, FedEx, local post, etc.), and provide the actual shipping cost for this specific delivery.
-                          </p>
-
-                          {providingQuoteFor === order.id ? (
-                            <div className="space-y-3 bg-white p-4 rounded-lg">
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  Shipping Cost (€)*
-                                </label>
-                                <input
-                                  type="number"
-                                  step="0.01"
-                                  min="0"
-                                  value={shippingCost}
-                                  onChange={(e) => setShippingCost(e.target.value)}
-                                  placeholder="0.00"
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                  required
-                                />
-                              </div>
-
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  Estimated Weight (kg)
-                                </label>
-                                <input
-                                  type="number"
-                                  step="0.1"
-                                  min="0"
-                                  value={estimatedWeight}
-                                  onChange={(e) => setEstimatedWeight(e.target.value)}
-                                  placeholder="Package weight"
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                />
-                              </div>
-
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  Shipping Notes
-                                </label>
-                                <textarea
-                                  value={shippingNotes}
-                                  onChange={(e) => setShippingNotes(e.target.value)}
-                                  placeholder="Include courier service, estimated delivery time, tracking info, etc."
-                                  rows={3}
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                />
-                              </div>
-
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() => handleProvideShippingQuote(order.id)}
-                                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-                                >
-                                  Submit Quote
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setProvidingQuoteFor(null);
-                                    setShippingCost('');
-                                    setShippingNotes('');
-                                    setEstimatedWeight('');
-                                  }}
-                                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => setProvidingQuoteFor(order.id)}
-                              className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors text-sm"
-                            >
-                              Provide Shipping Quote
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {false && (order.shipping_quote_status === 'quote_provided' || order.shipping_quote_status === 'quote_approved') && order.transportation_cost !== null && (
-                    <div className="mb-4 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
-                      <div className="flex items-start gap-3">
-                        <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-gray-900 mb-1">
-                            {order.shipping_quote_status === 'quote_approved' ? 'Quote Accepted - Complete Payment' : 'Shipping Quote Provided'}
-                          </h4>
-                          <div className="space-y-1 text-sm">
-                            <p className="text-gray-700">
-                              <span className="font-medium">Shipping Cost:</span> €{order.transportation_cost.toFixed(2)}
-                            </p>
-                            {order.estimated_weight_kg && (
-                              <p className="text-gray-700">
-                                <span className="font-medium">Package Weight:</span> {order.estimated_weight_kg} kg
-                              </p>
-                            )}
-                            {order.shipping_notes && (
-                              <p className="text-gray-700 mt-2">
-                                <span className="font-medium">Notes:</span> {order.shipping_notes}
-                              </p>
-                            )}
-                          </div>
-                          {profile?.user_type === 'client' && order.payment_status !== 'paid' && (
-                            <div className="mt-4 p-4 bg-white border border-blue-300 rounded-lg">
-                              <div className="flex items-center justify-between mb-2">
-                                <div>
-                                  <p className="font-semibold text-gray-900">Payment Breakdown</p>
-                                  {order.shipping_quote_status === 'quote_provided' && (
-                                    <div className="mt-2 space-y-1 text-sm text-gray-700">
-                                      <div className="flex justify-between">
-                                        <span>Item Price (held in escrow):</span>
-                                        <span className="font-medium">€{(Number(order.total_price) - Number(order.transportation_cost)).toFixed(2)}</span>
-                                      </div>
-                                      <div className="flex justify-between">
-                                        <span>Shipping (paid immediately):</span>
-                                        <span className="font-medium">€{Number(order.transportation_cost).toFixed(2)}</span>
-                                      </div>
-                                      <div className="border-t border-gray-300 pt-1 mt-1"></div>
-                                    </div>
-                                  )}
-                                  <p className="text-2xl font-bold text-blue-600 mt-2">
-                                    Total: €{Number(order.total_price).toFixed(2)}
-                                  </p>
-                                  <p className="text-xs text-gray-500 mt-1">
-                                    Product funds released after delivery confirmation
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="flex gap-3 mt-3">
-                                {order.shipping_quote_status === 'quote_provided' && (
-                                  <button
-                                    onClick={() => handleCancelQuote(order.id)}
-                                    disabled={cancelingQuote === order.id || acceptingQuote === order.id}
-                                    className="flex-1 bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                                  >
-                                    {cancelingQuote === order.id ? (
-                                      <>
-                                        <Loader className="w-5 h-5 animate-spin" />
-                                        Canceling...
-                                      </>
-                                    ) : (
-                                      <>
-                                        <XCircle className="w-5 h-5" />
-                                        Cancel Quote
-                                      </>
-                                    )}
-                                  </button>
-                                )}
-                                <button
-                                  onClick={() => undefined}
-                                  disabled={acceptingQuote === order.id || cancelingQuote === order.id}
-                                  className={`${order.shipping_quote_status === 'quote_provided' ? 'flex-1' : 'w-full'} bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
-                                >
-                                  {acceptingQuote === order.id ? (
-                                    <>
-                                      <Loader className="w-5 h-5 animate-spin" />
-                                      Processing...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <CreditCard className="w-5 h-5" />
-                                      {order.shipping_quote_status === 'quote_approved' ? 'Complete Payment' : 'Accept Quote & Pay Now'}
-                                    </>
-                                  )}
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                          {profile?.user_type === 'client' && order.payment_status === 'paid' && (
-                            <div className="mt-3 space-y-2">
-                              <p className="text-sm text-green-700 p-2 bg-green-50 rounded border border-green-200">
-                                <CheckCircle className="w-4 h-4 inline mr-1" />
-                                Payment received. Picker will process your order soon!
-                              </p>
-                              {order.shipping_paid && order.transportation_cost && (
-                                <p className="text-sm text-blue-700 p-2 bg-blue-50 rounded border border-blue-200">
-                                  <DollarSign className="w-4 h-4 inline mr-1" />
-                                  Shipping funds (€{order.transportation_cost.toFixed(2)}) transferred to picker
-                                  {order.shipping_paid_at && (
-                                    <span className="text-xs text-blue-600 ml-1">
-                                      on {new Date(order.shipping_paid_at).toLocaleDateString()}
-                                    </span>
-                                  )}
-                                </p>
-                              )}
-                            </div>
-                          )}
-                          {profile?.user_type === 'picker' && order.shipping_paid && order.transportation_cost && (
-                            <p className="text-sm text-green-700 mt-3 p-2 bg-green-50 rounded border border-green-200">
-                              <CheckCircle className="w-4 h-4 inline mr-1" />
-                              Shipping funds (€{order.transportation_cost.toFixed(2)}) received
-                              {order.shipping_paid_at && (
-                                <span className="text-xs text-green-600 ml-1">
-                                  on {new Date(order.shipping_paid_at).toLocaleDateString()}
-                                </span>
-                              )}
                             </p>
                           )}
                         </div>

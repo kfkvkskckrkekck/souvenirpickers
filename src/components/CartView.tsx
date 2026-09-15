@@ -353,9 +353,9 @@ export function CartView() {
                 </div>
 
                 <div className="pt-6 space-y-4 border-t border-gray-200">
-                  <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
-                    <p className="text-sm text-blue-800">
-                      <strong>Recommended:</strong> Request a shipping quote first. The picker will calculate exact shipping costs based on your delivery address, then you can complete payment.
+                  <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg">
+                    <p className="text-sm text-amber-800">
+                      <strong>Note:</strong> Shipping cost isn't calculated for cart orders yet — only the item price is charged. For automatic shipping rates and immediate payment, use "Buy Now" from the listing page instead.
                     </p>
                   </div>
 
@@ -372,7 +372,7 @@ export function CartView() {
                     ) : (
                       <>
                         <CheckCircle className="w-5 h-5" />
-                        Place Order & Request Shipping Quote
+                        Place Order
                       </>
                     )}
                   </button>
@@ -397,7 +397,7 @@ export function CartView() {
               <CheckCircle className="w-20 h-20 mx-auto text-green-500 mb-4" />
               <h2 className="text-3xl font-bold text-gray-900 mb-2">Orders Created!</h2>
               <p className="text-gray-600">
-                Your orders have been submitted. Pickers will provide shipping quotes soon, then you can complete payment.
+                Your orders have been placed. Check your Orders page to track progress with each picker.
               </p>
             </div>
             <div className="space-y-3">

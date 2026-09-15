@@ -1526,7 +1526,7 @@ export function ListingsView({ onContactPicker, onViewChange }: ListingsViewProp
           onOrderCreated={(order) => {
             setCheckoutListing(null);
             toast.success(
-              'Order placed successfully! The picker will provide a shipping quote soon. Check your Orders page to track progress.',
+              'Order placed and paid! The picker will ship your order soon. Check your Orders page to track progress.',
               8000
             );
             // Navigate to orders view if available

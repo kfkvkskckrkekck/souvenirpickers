@@ -110,12 +110,12 @@ const faqs: FAQItem[] = [
   {
     category: 'shipping',
     question: 'Who handles shipping?',
-    answer: 'Pickers are responsible for packaging and shipping items to collectors. They choose the shipping carrier and method based on the item size, destination, and agreed timeline. Tracking information is provided for all shipments.'
+    answer: 'Pickers package and ship items to collectors using the package weight and dimensions listed for the item. Shipping is fully automated: real-time rates from multiple couriers are generated instantly at checkout based on the package details and both addresses, and the collector picks the option they want. Tracking information is provided for all shipments.'
   },
   {
     category: 'shipping',
     question: 'How much does shipping cost?',
-    answer: 'Shipping costs vary by item size, weight, origin, and destination. Pickers typically provide shipping quotes when responding to requests. International shipping generally ranges from $10-$50 for small items and more for larger packages.'
+    answer: 'Shipping cost is calculated automatically and instantly at checkout, based on the picker’s real package weight and dimensions and both delivery addresses, using live courier rates. There’s no manual quoting — the collector sees the actual cost and available delivery speeds before paying.'
   },
   {
     category: 'shipping',
