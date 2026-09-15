@@ -61,7 +61,9 @@ export default function LiveStreamingView() {
 
   useEffect(() => {
     loadStreams();
-    const interval = setInterval(loadStreams, 30000);
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') loadStreams();
+    }, 30000);
     return () => clearInterval(interval);
   }, []);
 

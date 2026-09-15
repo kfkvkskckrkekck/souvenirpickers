@@ -2,6 +2,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   ReactNode,
 } from "react";
@@ -29,6 +30,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  // getSession() and onAuthStateChange's initial INITIAL_SESSION event both
+  // fire on every page load; this dedupes loadProfile so a fresh session for
+  // the same user doesn't trigger it twice.
+  const lastProfileLoadUserId = useRef<string | null>(null);
 
   useEffect(() => {
     // Handle email confirmation and password reset tokens from URL
@@ -198,7 +203,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         setUser(session?.user ?? null);
         if (session?.user) {
-          loadProfile(session.user.id);
+          if (lastProfileLoadUserId.current !== session.user.id) {
+            lastProfileLoadUserId.current = session.user.id;
+            loadProfile(session.user.id);
+          }
         } else {
           setLoading(false);
         }
@@ -215,8 +223,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       (async () => {
         setUser(session?.user ?? null);
         if (session?.user) {
-          await loadProfile(session.user.id);
+          if (lastProfileLoadUserId.current !== session.user.id) {
+            lastProfileLoadUserId.current = session.user.id;
+            await loadProfile(session.user.id);
+          }
         } else {
+          lastProfileLoadUserId.current = null;
           setProfile(null);
           setLoading(false);
         }

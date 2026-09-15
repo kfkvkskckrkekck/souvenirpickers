@@ -67,13 +67,13 @@ export function RealTimeChat({ initialPickerId }: RealTimeChatProps = {}) {
         }
       };
     }
-  }, [profile, user]);
+  }, [profile?.id, user?.id]);
 
   useEffect(() => {
     if (initialPickerId && profile) {
       handleInitialPicker(initialPickerId);
     }
-  }, [initialPickerId, profile]);
+  }, [initialPickerId, profile?.id]);
 
   const handleInitialPicker = async (otherUserId: string) => {
     if (!profile) return;
@@ -195,7 +195,7 @@ export function RealTimeChat({ initialPickerId }: RealTimeChatProps = {}) {
             .select('*, client:profiles!conversations_client_id_fkey(full_name), picker:profiles!conversations_picker_id_fkey(full_name)')
             .eq('id', payload.new.conversation_id)
             .or(`client_id.eq.${user.id},picker_id.eq.${user.id}`)
-            .single();
+            .maybeSingle();
 
           console.log('Conversation check result:', { conversation, error });
 

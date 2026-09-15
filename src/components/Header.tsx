@@ -53,7 +53,7 @@ export function Header({ currentView, onViewChange, onGoBack, onUnreadMessageCou
         if (cartCleanup) cartCleanup();
       };
     }
-  }, [user, profile?.user_type, profile?.id]);
+  }, [user?.id, profile?.user_type, profile?.id]);
 
   const checkProfileCompletion = async () => {
     if (!user || !profile) {
