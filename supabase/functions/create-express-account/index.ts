@@ -38,18 +38,41 @@ Deno.serve(async (req: Request) => {
     // Check if picker already has a Stripe account
     const { data: existing } = await supabase
       .from("picker_payout_info")
-      .select("stripe_account_id")
+      .select("stripe_account_id, is_verified")
       .eq("picker_id", picker_id)
       .maybeSingle();
 
     let stripeAccountId = existing?.stripe_account_id;
 
+    // If the picker has an existing but still-unverified account, confirm
+    // it's actually usable before trying to link to it, and check whether
+    // they're now choosing a different country than it was created with -
+    // Stripe never allows changing an account's country after creation, so
+    // either case means: forget this account id and let the code below
+    // create a fresh one instead.
+    if (stripeAccountId && !existing?.is_verified) {
+      try {
+        const existingAccount = await stripe.accounts.retrieve(stripeAccountId);
+        if (country && existingAccount.country && existingAccount.country !== country) {
+          console.log(`Resetting account for picker ${picker_id}: country ${existingAccount.country} -> ${country}`);
+          await stripe.accounts.del(stripeAccountId);
+          stripeAccountId = null;
+        }
+      } catch (retrieveError) {
+        console.error(`Stored Stripe account ${stripeAccountId} is no longer accessible, resetting:`, retrieveError);
+        stripeAccountId = null;
+      }
+    }
+
     if (!stripeAccountId) {
-      // Create new Express account for individual person
+      // Create new Express account. business_type is intentionally left
+      // unset - most pickers are individuals, but some countries (e.g. UAE)
+      // reject business_type: "individual" outright at this API call.
+      // Leaving it unset lets Stripe's own onboarding ask the picker and
+      // only offer whatever's actually valid for their chosen country.
       const createParams: any = {
         type: "express",
         email: picker_email,
-        business_type: "individual", // Individual person, not business
         capabilities: {
           card_payments: { requested: true },
           transfers: { requested: true },

@@ -687,6 +687,8 @@ export function OrderCheckoutModal({ listing, onClose, onOrderCreated }: OrderCh
               <StripeCheckoutForm
                 orderId={createdOrderId}
                 amount={totalPrice}
+                productAmount={itemTotal}
+                shippingAmount={shippingTotal}
                 onSuccess={handlePaymentSuccess}
                 onCancel={() => {
                   setShowPayment(false);

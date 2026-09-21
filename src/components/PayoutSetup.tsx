@@ -6,6 +6,23 @@ import { CheckCircle, AlertCircle, Loader, ExternalLink, DollarSign } from 'luci
 
 type AccountStatus = 'loading' | 'not_created' | 'pending' | 'verified';
 
+// Countries Stripe Connect can create Express recipient accounts for.
+// Not exhaustive, and Stripe's own support changes over time - if a
+// picker's real country isn't accepted here, Stripe's account-creation
+// call itself will reject it with a clear reason (surfaced via `error`
+// below), rather than this list silently being wrong.
+const PAYOUT_COUNTRIES: Array<[string, string]> = [
+  ['United States', 'US'], ['United Kingdom', 'GB'], ['Canada', 'CA'], ['Australia', 'AU'],
+  ['New Zealand', 'NZ'], ['Ireland', 'IE'], ['Germany', 'DE'], ['France', 'FR'], ['Italy', 'IT'],
+  ['Spain', 'ES'], ['Netherlands', 'NL'], ['Belgium', 'BE'], ['Austria', 'AT'], ['Switzerland', 'CH'],
+  ['Sweden', 'SE'], ['Norway', 'NO'], ['Denmark', 'DK'], ['Finland', 'FI'], ['Poland', 'PL'],
+  ['Portugal', 'PT'], ['Greece', 'GR'], ['Czech Republic', 'CZ'], ['Hungary', 'HU'], ['Romania', 'RO'],
+  ['Bulgaria', 'BG'], ['Croatia', 'HR'], ['Slovenia', 'SI'], ['Slovakia', 'SK'], ['Lithuania', 'LT'],
+  ['Latvia', 'LV'], ['Estonia', 'EE'], ['Luxembourg', 'LU'], ['Malta', 'MT'], ['Cyprus', 'CY'],
+  ['Japan', 'JP'], ['Singapore', 'SG'], ['Hong Kong', 'HK'], ['United Arab Emirates', 'AE'],
+  ['Mexico', 'MX'], ['Brazil', 'BR'], ['Thailand', 'TH'],
+];
+
 export function PayoutSetup() {
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -13,6 +30,7 @@ export function PayoutSetup() {
   const [requirements, setRequirements] = useState<string[]>([]);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [error, setError] = useState('');
+  const [country, setCountry] = useState('');
 
   useEffect(() => {
     checkStatus();
@@ -55,17 +73,20 @@ export function PayoutSetup() {
           body: {
             picker_id: user?.id,
             picker_email: user?.email,
+            country: country || undefined,
             return_url: `${window.location.origin}${window.location.pathname}?setup=complete`,
             refresh_url: `${window.location.origin}${window.location.pathname}?setup=refresh`,
           },
         }
       );
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
       window.location.href = data.url;
     } catch (err: any) {
       console.error('Error starting bank setup:', err);
-      setError('Failed to start bank setup. Please try again.');
-      showToast('Failed to start bank setup. Please try again.', 'error');
+      const message = err.message || 'Failed to start bank setup. Please try again.';
+      setError(message);
+      showToast(message, 'error');
       setIsRedirecting(false);
     }
   };
@@ -80,20 +101,43 @@ export function PayoutSetup() {
           body: {
             picker_id: user?.id,
             picker_email: user?.email,
+            country: country || undefined,
             return_url: `${window.location.origin}${window.location.pathname}?setup=complete`,
             refresh_url: `${window.location.origin}${window.location.pathname}?setup=refresh`,
           },
         }
       );
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
       window.location.href = data.url;
     } catch (err: any) {
       console.error('Error opening bank settings:', err);
-      setError('Failed to open bank settings. Please try again.');
-      showToast('Failed to open bank settings. Please try again.', 'error');
+      const message = err.message || 'Failed to open bank settings. Please try again.';
+      setError(message);
+      showToast(message, 'error');
       setIsRedirecting(false);
     }
   };
+
+  const countrySelect = (
+    <div className="mb-4">
+      <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+      <select
+        value={country}
+        onChange={(e) => setCountry(e.target.value)}
+        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+      >
+        <option value="">Select the country you're based in...</option>
+        {PAYOUT_COUNTRIES.map(([name, code]) => (
+          <option key={code} value={code}>{name}</option>
+        ))}
+      </select>
+      <p className="text-xs text-gray-500 mt-1">
+        This can't be changed later on the same account — Stripe requires creating a new one to correct it.
+        Not seeing your country? Stripe may not support it yet; use the manual bank details option in your Profile instead.
+      </p>
+    </div>
+  );
 
   if (status === 'loading') {
     return (
@@ -183,6 +227,19 @@ export function PayoutSetup() {
           </div>
         )}
 
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
+          <p className="text-sm text-gray-700 mb-3">
+            If your account was set up with the wrong country, pick the correct one here — starting setup again will replace it with a fresh account for that country instead.
+          </p>
+          {countrySelect}
+        </div>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+            <p className="text-sm text-red-800">{error}</p>
+          </div>
+        )}
+
         <div className="flex gap-3">
           <button
             onClick={checkStatus}
@@ -252,6 +309,8 @@ export function PayoutSetup() {
         </p>
       </div>
 
+      {countrySelect}
+
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
           <p className="text-sm text-red-800">{error}</p>
@@ -260,7 +319,7 @@ export function PayoutSetup() {
 
       <button
         onClick={handleSetup}
-        disabled={isRedirecting}
+        disabled={isRedirecting || !country}
         className="w-full bg-blue-600 text-white rounded-lg py-3 px-4 font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
       >
         {isRedirecting ? (

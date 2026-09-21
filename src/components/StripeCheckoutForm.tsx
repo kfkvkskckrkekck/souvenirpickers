@@ -12,11 +12,13 @@ declare global {
 type StripeCheckoutFormProps = {
   orderId: string;
   amount: number;
+  productAmount?: number;
+  shippingAmount?: number;
   onSuccess: () => void;
   onCancel: () => void;
 };
 
-export function StripeCheckoutForm({ orderId, amount, onSuccess, onCancel }: StripeCheckoutFormProps) {
+export function StripeCheckoutForm({ orderId, amount, productAmount, shippingAmount, onSuccess, onCancel }: StripeCheckoutFormProps) {
   const { user } = useAuth();
   const [stripe, setStripe] = useState<any>(null);
   const [cardElement, setCardElement] = useState<any>(null);
@@ -108,6 +110,8 @@ export function StripeCheckoutForm({ orderId, amount, onSuccess, onCancel }: Str
           body: JSON.stringify({
             orderId,
             amount,
+            productAmount,
+            shippingAmount,
             currency: 'eur',
           }),
         }
