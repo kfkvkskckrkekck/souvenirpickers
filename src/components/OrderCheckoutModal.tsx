@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { X, Package, DollarSign, MapPin, Gift } from 'lucide-react';
+import { FunctionsHttpError } from '@supabase/supabase-js';
 import { supabase, Listing, Profile, Order } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { StripeCheckoutForm } from './StripeCheckoutForm';
@@ -151,7 +152,18 @@ export function OrderCheckoutModal({ listing, onClose, onOrderCreated }: OrderCh
           },
         });
         if (rateError) {
-          const serverMsg = (rateData as { error?: string } | null)?.error;
+          // supabase-js doesn't parse the response body on a non-2xx status —
+          // it only exposes a generic "non-2xx status code" message unless we
+          // explicitly read the real body back off the raw Response object.
+          let serverMsg: string | undefined;
+          if (rateError instanceof FunctionsHttpError) {
+            try {
+              const body = await rateError.context.json();
+              serverMsg = body?.error;
+            } catch {
+              // response body wasn't valid JSON; fall through to generic message
+            }
+          }
           throw new Error(serverMsg || rateError.message || 'Unable to get shipping rates. Please try again.');
         }
         if (rateData?.error) throw new Error(rateData.error);
@@ -243,9 +255,8 @@ export function OrderCheckoutModal({ listing, onClose, onOrderCreated }: OrderCh
 
       setCreatedOrderId(data.id);
       setShowPayment(true);
-    } catch (err) {
-
-      setError('Failed to create order. Please try again.');
+    } catch (err: any) {
+      setError(err.message || 'Failed to create order. Please try again.');
     } finally {
       setSubmitting(false);
       setLoadingRates(false);
@@ -633,25 +644,6 @@ export function OrderCheckoutModal({ listing, onClose, onOrderCreated }: OrderCh
                   </div>
                 </div>
               </div>
-
-              <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
-                <h4 className="text-sm font-semibold text-gray-900 mb-3">Choose Shipping</h4>
-                {shippingRates.length > 0 ? (
-                  <div className="space-y-2">
-                    {shippingRates.map((rate) => (
-                      <button type="button" key={rate.id} onClick={() => { setSelectedShippingRate(rate); setError(''); }} className={`w-full text-left rounded-lg border-2 p-3 transition-colors ${selectedShippingRate?.id === rate.id ? 'border-blue-600 bg-white' : 'border-blue-100 bg-white/70 hover:border-blue-400'}`}>
-                        <div className="flex items-center justify-between gap-3">
-                          <div><p className="font-semibold text-gray-900">{rate.carrier}</p><p className="text-sm text-gray-700">{rate.name}</p><p className="text-xs text-gray-500">{rate.min_days}-{rate.max_days} business days</p></div>
-                          <span className="font-bold text-gray-900">€{rate.price.toFixed(2)}</span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-700">Shipping rates will be calculated after you submit your delivery address.</p>
-                )}
-                {loadingRates && <p className="text-sm text-blue-700 mt-3">Calculating shipping rates...</p>}
-              </div>
             </div>
           )}
 
@@ -734,6 +726,27 @@ export function OrderCheckoutModal({ listing, onClose, onOrderCreated }: OrderCh
               </div>
             </div>
           </div>
+
+          {!showPayment && (
+            <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+              <h4 className="text-sm font-semibold text-gray-900 mb-3">Choose Shipping</h4>
+              {shippingRates.length > 0 ? (
+                <div className="space-y-2">
+                  {shippingRates.map((rate) => (
+                    <button type="button" key={rate.id} onClick={() => { setSelectedShippingRate(rate); setError(''); }} className={`w-full text-left rounded-lg border-2 p-3 transition-colors ${selectedShippingRate?.id === rate.id ? 'border-blue-600 bg-white' : 'border-blue-100 bg-white/70 hover:border-blue-400'}`}>
+                      <div className="flex items-center justify-between gap-3">
+                        <div><p className="font-semibold text-gray-900">{rate.carrier}</p><p className="text-sm text-gray-700">{rate.name}</p><p className="text-xs text-gray-500">{rate.min_days}-{rate.max_days} business days</p></div>
+                        <span className="font-bold text-gray-900">€{rate.price.toFixed(2)}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-700">Shipping rates will be calculated after you submit your delivery address.</p>
+              )}
+              {loadingRates && <p className="text-sm text-blue-700 mt-3">Calculating shipping rates...</p>}
+            </div>
+          )}
 
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
