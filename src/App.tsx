@@ -423,7 +423,7 @@ function AppContent() {
   }, [currentView, profile?.user_type, hasAccess, user, profile]);
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    document.getElementById('main-scroll-area')?.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentView]);
 
   useEffect(() => {
@@ -496,8 +496,7 @@ function AppContent() {
   }
 
   return (
-    // <div className={`bg-gray-50 flex flex-col ${currentView === 'messages' ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
-    <div className="bg-gray-50 flex flex-col min-h-screen">
+    <div className="bg-gray-50 flex flex-col h-screen overflow-hidden">
       <Header
         currentView={currentView}
         onViewChange={handleViewChange}
@@ -508,7 +507,6 @@ function AppContent() {
       />
 
       {/* Flex row: sidebar + content side by side */}
-      {/* <div className={`flex flex-1 min-h-0 ${currentView === 'messages' ? 'h-screen overflow-hidden' : ''}`}> */}
       <div className="flex flex-1 min-h-0">
         <Sidebar
           currentView={currentView}
@@ -518,8 +516,7 @@ function AppContent() {
           onClose={() => setShowMobileMenu(false)}
         />
 
-        {/* <div className={`flex-1 min-w-0 ${currentView === 'messages' ? ' h-screen overflow-hidden flex flex-col' : ''}`}> */}
-        <div className="flex-1 min-w-0 overflow-hidden flex flex-col [&>*]:w-full">
+        <div id="main-scroll-area" className="flex-1 min-w-0 flex flex-col overflow-y-auto [&>*:first-child]:w-full">
           <Suspense fallback={
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
               <div className="flex items-center justify-center min-h-[400px]">
@@ -602,10 +599,11 @@ function AppContent() {
             {currentView === 'terms' && <TermsOfServiceView />}
             {currentView === 'cookie-policy' && <CookiePolicyView />}
           </Suspense>
+
+          {currentView === 'home' && <Footer />}
         </div>
       </div>
 
-      <Footer />
       <CookieBanner />
     </div>
   );

@@ -438,7 +438,7 @@ export function ProfileView() {
       if (profileComplete) {
         setMessage('Profile updated successfully! Your profile is now 100% complete.');
         // Scroll to top to show the completion banner
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        document.getElementById('main-scroll-area')?.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
         setMessage('Profile updated successfully!');
       }
