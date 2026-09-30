@@ -181,25 +181,21 @@ Deno.serve(async (req: Request) => {
       },
     });
 
-    // Release escrow
-    if (resolved_escrow_id) {
-      await supabase
-        .from("payment_escrow")
-        .update({
-          status: "released",
-          released_at: new Date().toISOString(),
-          payout_processed: true,
-        })
-        .eq("id", resolved_escrow_id);
-    } else {
-      await supabase
-        .from("payment_escrow")
-        .update({
-          status: "released",
-          released_at: new Date().toISOString(),
-          payout_processed: true,
-        })
-        .eq("order_id", resolved_order_id!);
+    // Release escrow. payout_processed is deliberately not written here -
+    // that column doesn't exist on payment_escrow, and including it made
+    // Postgres reject this entire update (status/released_at included),
+    // which is why escrow rows stayed stuck on 'processing' forever even
+    // after a payout succeeded.
+    const escrowUpdate = {
+      status: "released",
+      released_at: new Date().toISOString(),
+    };
+    const { error: escrowReleaseError } = resolved_escrow_id
+      ? await supabase.from("payment_escrow").update(escrowUpdate).eq("id", resolved_escrow_id)
+      : await supabase.from("payment_escrow").update(escrowUpdate).eq("order_id", resolved_order_id!);
+
+    if (escrowReleaseError) {
+      console.error("Failed to mark escrow released (payout still succeeded):", escrowReleaseError);
     }
 
     // Send notification to picker
