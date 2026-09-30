@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp, DollarSign, ShoppingBag, MessageSquare, Eye, Calendar, User, X } from 'lucide-react';
+import { TrendingUp, DollarSign, ShoppingBag, MessageSquare, Eye, Calendar, User, X, ArrowRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { RevenueBoosters } from './RevenueBoosters';
@@ -229,7 +229,7 @@ export function AnalyticsDashboard({ onViewChange }: AnalyticsDashboardProps) {
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
@@ -238,7 +238,7 @@ export function AnalyticsDashboard({ onViewChange }: AnalyticsDashboardProps) {
   }
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
@@ -284,68 +284,78 @@ export function AnalyticsDashboard({ onViewChange }: AnalyticsDashboardProps) {
         <RevenueBoosters onViewChange={onViewChange} compact={true} />
       </div>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-8">
         <button
           onClick={loadProfileViewers}
           disabled={loadingViewers}
-          className="bg-white rounded-2xl shadow-lg p-6 text-left hover:shadow-xl transition-shadow cursor-pointer disabled:opacity-50"
+          className="group bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-left hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 flex items-center gap-5"
         >
-          <div className="flex items-center justify-between mb-4">
-            <div className="bg-blue-100 p-3 rounded-lg">
-              <Eye className="w-6 h-6 text-blue-600" />
-            </div>
+          <div className="w-14 h-14 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+            <Eye className="w-7 h-7 text-blue-600" />
           </div>
-          <h3 className="text-gray-600 text-sm font-medium mb-1">Total Views</h3>
-          <p className="text-3xl font-bold text-gray-900 mb-1">{totalViews}</p>
-          <p className="text-sm text-gray-500">Avg {avgViews}/day</p>
-          <p className="text-xs text-blue-600 mt-2 font-medium">
-            {loadingViewers ? 'Loading...' : 'Click to see who viewed your profile'}
-          </p>
+          <div className="min-w-0">
+            <h3 className="text-sm font-medium text-gray-500 mb-1">Total Views</h3>
+            <p className="text-3xl font-extrabold text-gray-900 tracking-tight">{totalViews}</p>
+            <p className="text-xs text-gray-400 mt-0.5 mb-2">Avg {avgViews}/day</p>
+            <p className="text-xs font-semibold text-blue-600 inline-flex items-center gap-1">
+              {loadingViewers ? 'Loading...' : 'See who viewed you'}
+              <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+            </p>
+          </div>
         </button>
 
         <button
           onClick={() => onViewChange?.('messages')}
-          className="bg-white rounded-2xl shadow-lg p-6 text-left hover:shadow-xl transition-shadow cursor-pointer"
+          className="group bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-left hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 flex items-center gap-5"
         >
-          <div className="flex items-center justify-between mb-4">
-            <div className="bg-green-100 p-3 rounded-lg">
-              <MessageSquare className="w-6 h-6 text-green-600" />
-            </div>
+          <div className="w-14 h-14 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
+            <MessageSquare className="w-7 h-7 text-emerald-600" />
           </div>
-          <h3 className="text-gray-600 text-sm font-medium mb-1">Messages</h3>
-          <p className="text-3xl font-bold text-gray-900 mb-1">{totalMessages}</p>
-          <p className="text-sm text-gray-500">Avg {avgMessages}/day</p>
-          <p className="text-xs text-green-600 mt-2 font-medium">Click to view messages</p>
+          <div className="min-w-0">
+            <h3 className="text-sm font-medium text-gray-500 mb-1">Messages</h3>
+            <p className="text-3xl font-extrabold text-gray-900 tracking-tight">{totalMessages}</p>
+            <p className="text-xs text-gray-400 mt-0.5 mb-2">Avg {avgMessages}/day</p>
+            <p className="text-xs font-semibold text-emerald-600 inline-flex items-center gap-1">
+              View messages
+              <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+            </p>
+          </div>
         </button>
 
         <button
           onClick={() => onViewChange?.('orders')}
-          className="bg-white rounded-2xl shadow-lg p-6 text-left hover:shadow-xl transition-shadow cursor-pointer"
+          className="group bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-left hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 flex items-center gap-5"
         >
-          <div className="flex items-center justify-between mb-4">
-            <div className="bg-purple-100 p-3 rounded-lg">
-              <ShoppingBag className="w-6 h-6 text-purple-600" />
-            </div>
+          <div className="w-14 h-14 rounded-xl bg-purple-50 flex items-center justify-center flex-shrink-0">
+            <ShoppingBag className="w-7 h-7 text-purple-600" />
           </div>
-          <h3 className="text-gray-600 text-sm font-medium mb-1">Orders</h3>
-          <p className="text-3xl font-bold text-gray-900 mb-1">{totalOrders}</p>
-          <p className="text-sm text-gray-500">Avg {avgOrders}/day</p>
-          <p className="text-xs text-purple-600 mt-2 font-medium">Click to view orders</p>
+          <div className="min-w-0">
+            <h3 className="text-sm font-medium text-gray-500 mb-1">Orders</h3>
+            <p className="text-3xl font-extrabold text-gray-900 tracking-tight">{totalOrders}</p>
+            <p className="text-xs text-gray-400 mt-0.5 mb-2">Avg {avgOrders}/day</p>
+            <p className="text-xs font-semibold text-purple-600 inline-flex items-center gap-1">
+              View orders
+              <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+            </p>
+          </div>
         </button>
 
         <button
           onClick={() => onViewChange?.('earnings')}
-          className="bg-white rounded-2xl shadow-lg p-6 text-left hover:shadow-xl transition-shadow cursor-pointer"
+          className="group bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-left hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 flex items-center gap-5"
         >
-          <div className="flex items-center justify-between mb-4">
-            <div className="bg-yellow-100 p-3 rounded-lg">
-              <DollarSign className="w-6 h-6 text-yellow-600" />
-            </div>
+          <div className="w-14 h-14 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
+            <DollarSign className="w-7 h-7 text-amber-600" />
           </div>
-          <h3 className="text-gray-600 text-sm font-medium mb-1">Revenue</h3>
-          <p className="text-3xl font-bold text-gray-900 mb-1">${totalRevenue.toFixed(2)}</p>
-          <p className="text-sm text-gray-500">Avg ${avgRevenue}/day</p>
-          <p className="text-xs text-yellow-600 mt-2 font-medium">Click to view earnings</p>
+          <div className="min-w-0">
+            <h3 className="text-sm font-medium text-gray-500 mb-1">Revenue</h3>
+            <p className="text-3xl font-extrabold text-gray-900 tracking-tight">${totalRevenue.toFixed(2)}</p>
+            <p className="text-xs text-gray-400 mt-0.5 mb-2">Avg ${avgRevenue}/day</p>
+            <p className="text-xs font-semibold text-amber-600 inline-flex items-center gap-1">
+              View earnings
+              <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+            </p>
+          </div>
         </button>
       </div>
 
