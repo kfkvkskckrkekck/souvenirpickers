@@ -133,9 +133,18 @@ export function RevenueBoosters({ onViewChange, compact = false }: RevenueBooter
   };
 
   if (loading) {
+    if (compact) {
+      return (
+        <div className="flex items-center justify-center p-8">
+          <div className="text-gray-500">Loading revenue insights...</div>
+        </div>
+      );
+    }
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-gray-500">Loading revenue insights...</div>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex items-center justify-center p-8">
+          <div className="text-gray-500">Loading revenue insights...</div>
+        </div>
       </div>
     );
   }

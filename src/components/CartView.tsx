@@ -156,8 +156,10 @@ export function CartView() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">Loading cart...</div>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-gray-500">Loading cart...</div>
+        </div>
       </div>
     );
   }

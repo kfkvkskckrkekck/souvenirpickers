@@ -258,8 +258,10 @@ export function ReferralProgram() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-gray-500">Loading...</div>
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-gray-500">Loading...</div>
+        </div>
       </div>
     );
   }

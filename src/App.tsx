@@ -519,12 +519,14 @@ function AppContent() {
         />
 
         {/* <div className={`flex-1 min-w-0 ${currentView === 'messages' ? ' h-screen overflow-hidden flex flex-col' : ''}`}> */}
-        <div className="flex-1 min-w-0 overflow-hidden flex flex-col">
+        <div className="flex-1 min-w-0 overflow-hidden flex flex-col [&>*]:w-full">
           <Suspense fallback={
-            <div className="flex items-center justify-center min-h-[400px]">
-              <div className="text-center">
-                <div className="text-gray-500 text-lg mb-2">Loading...</div>
-                <div className="text-gray-400 text-sm">Please wait</div>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+              <div className="flex items-center justify-center min-h-[400px]">
+                <div className="text-center">
+                  <div className="text-gray-500 text-lg mb-2">Loading...</div>
+                  <div className="text-gray-400 text-sm">Please wait</div>
+                </div>
               </div>
             </div>
           }>

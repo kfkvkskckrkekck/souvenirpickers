@@ -84,8 +84,10 @@ export function InvoicesView() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-gray-500">Loading invoices...</div>
+      <div className="max-w-6xl mx-auto">
+        <div className="flex items-center justify-center py-12">
+          <div className="text-gray-500">Loading invoices...</div>
+        </div>
       </div>
     );
   }

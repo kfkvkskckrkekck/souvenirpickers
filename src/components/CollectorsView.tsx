@@ -297,58 +297,55 @@ export function CollectorsView({ onViewChange }: CollectorsViewProps) {
           {filteredCollectors.map((collector) => (
             <div
               key={collector.id}
-              className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden border border-gray-200"
+              className="group bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 overflow-hidden h-full flex flex-col"
             >
-              <div className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-green-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                      {collector.full_name?.charAt(0).toUpperCase() || 'C'}
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900">
-                        {collector.full_name || 'Anonymous'}
-                      </h3>
-                      {collector.location && (
-                        <div className="flex items-center gap-1 text-sm text-gray-500">
-                          <MapPin className="w-3 h-3" />
-                          {collector.location}
-                        </div>
-                      )}
+              <div className="p-5 flex flex-col flex-1">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center text-white font-bold text-lg flex-shrink-0 shadow-sm">
+                    {collector.full_name?.charAt(0).toUpperCase() || 'C'}
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-gray-900 tracking-tight truncate">
+                      {collector.full_name || 'Anonymous'}
+                    </h3>
+                    <div className="flex items-center gap-1 text-xs text-gray-500 mt-0.5">
+                      <MapPin className="w-3 h-3 flex-shrink-0" />
+                      <span className="truncate">{collector.location || 'Location not set'}</span>
                     </div>
                   </div>
                 </div>
 
-                {collector.bio && (
-                  <p className="text-sm text-gray-600 mb-4 line-clamp-3">
+                {collector.bio ? (
+                  <p className="text-sm text-gray-500 mb-3.5 line-clamp-2 leading-relaxed">
                     {collector.bio}
                   </p>
+                ) : (
+                  <p className="text-sm text-gray-300 italic mb-3.5">No bio yet</p>
                 )}
 
-                <div className="flex items-center gap-4 mb-4 text-sm text-gray-600">
-                  <div className="flex items-center gap-1">
-                    <Package className="w-4 h-4" />
-                    <span>{collector.totalOrders || 0} orders</span>
-                  </div>
+                <div className="flex flex-wrap items-center gap-2 mb-4">
+                  <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 text-xs font-semibold px-2.5 py-1 rounded-full">
+                    <Package className="w-3.5 h-3.5" />
+                    {collector.totalOrders || 0} orders
+                  </span>
                   {collector.avgRating && collector.avgRating > 0 ? (
-                    <div className="flex items-center gap-1">
-                      <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                      <span>{collector.avgRating.toFixed(1)}</span>
-                    </div>
+                    <span className="inline-flex items-center gap-1.5 bg-amber-50 text-amber-700 text-xs font-semibold px-2.5 py-1 rounded-full">
+                      <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                      {collector.avgRating.toFixed(1)}
+                    </span>
                   ) : (
-                    <span className="text-gray-400">No reviews yet</span>
+                    <span className="text-xs font-medium text-gray-400">No reviews yet</span>
+                  )}
+                  {collector.totalSpent > 0 && (
+                    <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-xs font-semibold px-2.5 py-1 rounded-full">
+                      €{collector.totalSpent.toFixed(2)} spent
+                    </span>
                   )}
                 </div>
 
-                {collector.totalSpent && collector.totalSpent > 0 && (
-                  <div className="text-sm text-gray-600 mb-4">
-                    Total spent: <span className="font-semibold text-green-600">€{collector.totalSpent.toFixed(2)}</span>
-                  </div>
-                )}
-
                 <button
                   onClick={() => handleContactCollector(collector.id)}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                  className="mt-auto w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 px-4 rounded-xl font-semibold text-sm shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2"
                 >
                   <MessageCircle className="w-4 h-4" />
                   Contact Collector

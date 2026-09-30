@@ -188,8 +188,10 @@ export default function SafetyReportingView() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Clock className="w-8 h-8 animate-spin text-blue-600" />
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex items-center justify-center py-12">
+          <Clock className="w-8 h-8 animate-spin text-blue-600" />
+        </div>
       </div>
     );
   }
