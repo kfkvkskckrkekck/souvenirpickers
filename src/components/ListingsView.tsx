@@ -96,6 +96,7 @@ export function ListingsView({ onContactPicker, onViewChange }: ListingsViewProp
         const pickerProf = await loadPickerProfile();
         // After loading picker profile, load listings with the loaded profile
         await loadListings(pickerProf);
+        await loadSellerAddress();
       } else if (profile.user_type === 'client') {
         console.log('Loading listings for client...');
         // For clients, load listings directly
@@ -508,6 +509,36 @@ export function ListingsView({ onContactPicker, onViewChange }: ListingsViewProp
     }
   };
 
+  const loadSellerAddress = async () => {
+    if (!profile?.id) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('seller_addresses')
+        .select('full_name, company_name, street, city, postcode, country_code, phone')
+        .eq('seller_id', profile.id)
+        .eq('is_default', true)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error loading seller address:', error);
+        return;
+      }
+
+      if (data) {
+        setSellerFullName(data.full_name || '');
+        setSellerCompanyName(data.company_name || '');
+        setSellerStreet(data.street || '');
+        setSellerCity(data.city || '');
+        setSellerPostcode(data.postcode || '');
+        setSellerCountry(data.country_code || 'DE');
+        setSellerPhone(data.phone || '');
+      }
+    } catch (error) {
+      console.error('Error loading seller address:', error);
+    }
+  };
+
   const selectPackagePreset = (preset: 'small' | 'medium' | 'large' | 'xlarge' | 'custom') => {
     setPackagePreset(preset);
     const values = {
@@ -725,12 +756,12 @@ export function ListingsView({ onContactPicker, onViewChange }: ListingsViewProp
       {profile?.user_type === 'picker' && onViewChange && (
         <ProfileCompletionBanner onNavigateToProfile={() => onViewChange('profile')} />
       )}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
             {profile?.user_type === 'picker' ? 'My Listings' : 'Browse Listings'}
           </h1>
-          <p className="text-gray-600 mt-1">
+          <p className="text-gray-500 mt-1">
             {profile?.user_type === 'picker'
               ? 'Manage your souvenir listings and add new products'
               : 'Discover unique souvenirs from around the world'}
@@ -739,7 +770,7 @@ export function ListingsView({ onContactPicker, onViewChange }: ListingsViewProp
         {profile?.user_type === 'picker' && pickerProfile && (
           <button
             onClick={() => setShowCreateForm(!showCreateForm)}
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
+            className="flex-shrink-0 bg-blue-600 text-white px-5 py-3 rounded-xl font-semibold shadow-sm hover:bg-blue-700 hover:shadow-md transition-all flex items-center gap-2"
           >
             <Plus className="w-5 h-5" />
             Add Product
@@ -1148,24 +1179,26 @@ export function ListingsView({ onContactPicker, onViewChange }: ListingsViewProp
         </div>
       )}
 
-      <SearchFilters
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        selectedRegion={selectedRegion}
-        onRegionChange={setSelectedRegion}
-        selectedCategory={selectedCategory}
-        onCategoryChange={setSelectedCategory}
-        minPrice={minPrice}
-        onMinPriceChange={setMinPrice}
-        maxPrice={maxPrice}
-        onMaxPriceChange={setMaxPrice}
-        sortBy={sortBy}
-        onSortChange={setSortBy}
-        regions={uniqueRegions}
-        categories={uniqueCategories}
-        onClearFilters={clearFilters}
-        hasActiveFilters={hasActiveFilters}
-      />
+      <div className="sticky top-16 z-30 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 bg-gray-50/95 backdrop-blur-sm">
+        <SearchFilters
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          selectedRegion={selectedRegion}
+          onRegionChange={setSelectedRegion}
+          selectedCategory={selectedCategory}
+          onCategoryChange={setSelectedCategory}
+          minPrice={minPrice}
+          onMinPriceChange={setMinPrice}
+          maxPrice={maxPrice}
+          onMaxPriceChange={setMaxPrice}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+          regions={uniqueRegions}
+          categories={uniqueCategories}
+          onClearFilters={clearFilters}
+          hasActiveFilters={hasActiveFilters}
+        />
+      </div>
 
 
 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -1177,7 +1210,7 @@ export function ListingsView({ onContactPicker, onViewChange }: ListingsViewProp
           filteredListings.map((listing) => (
             <div
               key={listing.id}
-              className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow cursor-pointer"
+              className="group bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
               onClick={() => {
                 if (listing.picker_id) {
                   trackPickerView(listing.picker_id, 'listing', listing.id);
@@ -1191,33 +1224,33 @@ export function ListingsView({ onContactPicker, onViewChange }: ListingsViewProp
                 title={listing.title}
               />
 
-              <div className="p-6">
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <h3 className="text-xl font-bold text-gray-900 flex-1 leading-tight">{listing.title}</h3>
+              <div className="p-5">
+                <div className="flex items-start justify-between gap-3 mb-1.5">
+                  <h3 className="text-lg font-bold text-gray-900 flex-1 leading-snug tracking-tight line-clamp-1">{listing.title}</h3>
                   {listing.images && listing.images.length > 0 && (
                     <VerificationBadge storagePath={listing.images[0]} />
                   )}
                 </div>
-                <p className="text-base text-gray-700 mb-4 line-clamp-2 leading-relaxed">{listing.description}</p>
+                <p className="text-sm text-gray-500 mb-3.5 line-clamp-2 leading-relaxed">{listing.description}</p>
 
-                <div className="flex flex-wrap gap-3 mb-4 text-sm text-gray-700">
-                  <div className="flex items-center gap-1.5">
-                    <MapPin className="w-4 h-4 text-gray-600" />
-                    <span className="font-medium">{listing.region}</span>
-                  </div>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 text-xs font-semibold px-2.5 py-1 rounded-full">
+                    <MapPin className="w-3.5 h-3.5" />
+                    {listing.region}
+                  </span>
                   {listing.category && (
-                    <div className="flex items-center gap-1.5">
-                      <Tag className="w-4 h-4 text-gray-600" />
-                      <span className="font-medium">{listing.category}</span>
-                    </div>
+                    <span className="inline-flex items-center gap-1.5 bg-orange-50 text-orange-700 text-xs font-semibold px-2.5 py-1 rounded-full">
+                      <Tag className="w-3.5 h-3.5" />
+                      {listing.category}
+                    </span>
                   )}
                 </div>
 
                 {(listing.pickup_location || (listing.latitude && listing.longitude)) && (
-                  <div className="mb-4 p-3 bg-gray-50 rounded-lg text-sm">
+                  <div className="mb-4 p-3 bg-gray-50 rounded-xl text-sm">
                     {listing.pickup_location && (
-                      <div className="flex items-start gap-2 text-gray-800">
-                        <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-600" />
+                      <div className="flex items-start gap-2 text-gray-700">
+                        <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-500" />
                         <span className="font-medium">{listing.pickup_location}</span>
                       </div>
                     )}
@@ -1237,20 +1270,25 @@ export function ListingsView({ onContactPicker, onViewChange }: ListingsViewProp
                 )}
 
                 {listing.picker?.profile && (
-                  <div className="mb-4 pb-4 border-b border-gray-200">
+                  <div className="mb-4 pb-4 border-b border-gray-100">
                     <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <p className="text-sm text-gray-700">
-                          by <span className="font-semibold text-gray-900">{listing.picker.profile.full_name}</span>
-                          {listing.picker.verified && (
-                            <span className="text-green-600 ml-1 font-bold">✓</span>
-                          )}
-                        </p>
-                        {listing.picker.rating > 0 && (
-                          <p className="text-sm text-gray-700 mt-1">
-                            ⭐ <span className="font-semibold">{listing.picker.rating.toFixed(1)}</span> ({listing.picker.total_reviews} reviews)
+                      <div className="flex-1 flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-orange-400 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                          {listing.picker.profile.full_name?.charAt(0).toUpperCase() || '?'}
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">
+                            by <span className="font-semibold text-gray-900">{listing.picker.profile.full_name}</span>
+                            {listing.picker.verified && (
+                              <span className="text-green-600 ml-1 font-bold">✓</span>
+                            )}
                           </p>
-                        )}
+                          {listing.picker.rating > 0 && (
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              ⭐ <span className="font-semibold text-gray-700">{listing.picker.rating.toFixed(1)}</span> ({listing.picker.total_reviews} reviews)
+                            </p>
+                          )}
+                        </div>
                       </div>
                       {profile?.user_type === 'client' && (
                         <FollowButton pickerId={listing.picker.user_id} />
@@ -1260,24 +1298,26 @@ export function ListingsView({ onContactPicker, onViewChange }: ListingsViewProp
                 )}
 
                 <div className="flex flex-col gap-4">
-                  <div className="bg-gray-100 p-4 rounded-lg border-2 border-gray-300">
-                    <div className="text-4xl font-black text-black">
-                      €{listing.price.toFixed(2)}
-                    </div>
-                    <div className="text-base text-black mt-1 font-bold">
-                      + delivery costs at checkout
+                  <div className="flex items-baseline justify-between pt-0.5">
+                    <div>
+                      <div className="text-3xl font-extrabold text-gray-900 tracking-tight">
+                        €{listing.price.toFixed(2)}
+                      </div>
+                      <div className="text-xs text-gray-500 font-medium mt-1">
+                        + delivery costs at checkout
+                      </div>
                     </div>
                   </div>
                   {profile?.user_type === 'client' && (
-                    <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-2.5">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           setCheckoutListing(listing);
                         }}
-                        className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg font-bold text-base hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                        className="w-full bg-blue-600 text-white px-6 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-blue-700 hover:shadow-md transition-all flex items-center justify-center gap-2"
                       >
-                        <ShoppingCart className="w-5 h-5" />
+                        <ShoppingCart className="w-4 h-4" />
                         Buy Now
                       </button>
                       <div className="grid grid-cols-3 gap-2">
@@ -1286,9 +1326,9 @@ export function ListingsView({ onContactPicker, onViewChange }: ListingsViewProp
                             e.stopPropagation();
                             handleAddToCart(listing);
                           }}
-                          className="bg-green-600 text-white px-4 py-2.5 rounded-lg font-bold text-sm hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                          className="bg-emerald-50 text-emerald-700 px-3 py-2.5 rounded-xl font-semibold text-xs hover:bg-emerald-100 transition-colors flex items-center justify-center gap-1.5"
                         >
-                          <ShoppingBag className="w-5 h-5" />
+                          <ShoppingBag className="w-4 h-4" />
                           Cart
                         </button>
                         <button
@@ -1296,9 +1336,9 @@ export function ListingsView({ onContactPicker, onViewChange }: ListingsViewProp
                             e.stopPropagation();
                             openAddToCollectionModal(listing);
                           }}
-                          className="bg-pink-600 text-white px-4 py-2.5 rounded-lg font-bold text-sm hover:bg-pink-700 transition-colors flex items-center justify-center gap-2"
+                          className="bg-pink-50 text-pink-700 px-3 py-2.5 rounded-xl font-semibold text-xs hover:bg-pink-100 transition-colors flex items-center justify-center gap-1.5"
                         >
-                          <Heart className="w-5 h-5" />
+                          <Heart className="w-4 h-4" />
                           Save
                         </button>
                         <button
@@ -1306,24 +1346,24 @@ export function ListingsView({ onContactPicker, onViewChange }: ListingsViewProp
                             e.stopPropagation();
                             handleContactPicker(listing);
                           }}
-                          className="bg-gray-200 text-black px-4 py-2.5 rounded-lg font-bold text-sm hover:bg-gray-300 transition-colors flex items-center justify-center gap-2"
+                          className="bg-gray-100 text-gray-700 px-3 py-2.5 rounded-xl font-semibold text-xs hover:bg-gray-200 transition-colors flex items-center justify-center gap-1.5"
                         >
-                          <MessageCircle className="w-5 h-5" />
+                          <MessageCircle className="w-4 h-4" />
                           Chat
                         </button>
                       </div>
                     </div>
                   )}
                   {profile?.user_type === 'picker' && (
-                    <div className="flex gap-2">
+                    <div className="flex gap-2.5 pt-1">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           startEditListing(listing);
                         }}
-                        className="flex-1 bg-blue-600 text-white px-4 py-3 rounded-lg font-bold text-base hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                        className="flex-1 bg-blue-600 text-white px-4 py-2.5 rounded-xl font-semibold text-sm shadow-sm hover:bg-blue-700 hover:shadow-md transition-all flex items-center justify-center gap-2"
                       >
-                        <Edit2 className="w-5 h-5" />
+                        <Edit2 className="w-4 h-4" />
                         Edit
                       </button>
                       <button
@@ -1331,9 +1371,9 @@ export function ListingsView({ onContactPicker, onViewChange }: ListingsViewProp
                           e.stopPropagation();
                           setDeletingListingId(listing.id);
                         }}
-                        className="flex-1 bg-red-600 text-white px-4 py-3 rounded-lg font-bold text-base hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
+                        className="flex-1 bg-white text-red-600 border border-red-200 px-4 py-2.5 rounded-xl font-semibold text-sm hover:bg-red-50 hover:border-red-300 transition-all flex items-center justify-center gap-2"
                       >
-                        <Trash2 className="w-5 h-5" />
+                        <Trash2 className="w-4 h-4" />
                         Delete
                       </button>
                     </div>

@@ -94,37 +94,29 @@ export default function ProfileCompletionBanner({ onNavigateToProfile }: Profile
   // If profile is complete, show success banner
   if (missingFields.length === 0) {
     return (
-      <div className="bg-gradient-to-br from-green-50 via-blue-50 to-green-50 border-2 border-green-300 p-4 mb-6 rounded-lg shadow-sm">
-        <div className="flex items-start gap-3">
-          <div className="bg-green-500 rounded-full p-2 shadow-md flex-shrink-0">
-            <CheckCircle className="h-6 w-6 text-white" />
-          </div>
-          <div className="flex-1">
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex-1">
-                <h3 className="font-semibold text-gray-900 mb-1">Profile Complete</h3>
-                <p className="text-sm text-gray-700 mb-3">
-                  {profile.user_type === 'picker'
-                    ? 'Your profile is complete and ready. You can now create listings and start receiving orders from collectors around the world!'
-                    : 'Your profile is complete. Browse unique souvenirs from around the world and place your first order!'}
-                </p>
-                <button
-                  onClick={onNavigateToProfile}
-                  className="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors font-medium text-sm"
-                >
-                  Edit Profile
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-              </div>
-              <button
-                onClick={() => setDismissed(true)}
-                className="text-gray-400 hover:text-gray-600 flex-shrink-0"
-                aria-label="Dismiss"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
+      <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 px-4 py-2.5 mb-5 rounded-xl shadow-sm">
+        <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
+          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+          <p className="flex-1 min-w-[200px] text-sm text-gray-700">
+            <span className="font-semibold text-gray-900">Profile Complete.</span>{' '}
+            {profile.user_type === 'picker'
+              ? 'Ready to receive orders from collectors worldwide.'
+              : 'Ready to browse and order unique souvenirs.'}
+          </p>
+          <button
+            onClick={onNavigateToProfile}
+            className="flex-shrink-0 inline-flex items-center gap-1.5 bg-green-600 text-white px-3.5 py-1.5 rounded-lg hover:bg-green-700 transition-colors font-semibold text-xs"
+          >
+            Edit Profile
+            <ArrowRight className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={() => setDismissed(true)}
+            className="flex-shrink-0 text-gray-400 hover:text-gray-600"
+            aria-label="Dismiss"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
       </div>
     );
@@ -154,31 +146,26 @@ export default function ProfileCompletionBanner({ onNavigateToProfile }: Profile
   const { title, description } = getMessage();
 
   return (
-    <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border-l-4 border-orange-500 p-4 mb-6 rounded-lg shadow-sm">
-      <div className="flex items-start gap-3">
-        <AlertCircle className="h-6 w-6 text-orange-600 flex-shrink-0 mt-0.5" />
-        <div className="flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-1">{title}</h3>
-              <p className="text-sm text-gray-700 mb-3">{description}</p>
-              <button
-                onClick={onNavigateToProfile}
-                className="inline-flex items-center gap-2 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors font-medium text-sm"
-              >
-                Complete Profile Now
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            </div>
-            <button
-              onClick={() => setDismissed(true)}
-              className="text-gray-400 hover:text-gray-600 flex-shrink-0"
-              aria-label="Dismiss"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
+    <div className="bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 px-4 py-2.5 mb-5 rounded-xl shadow-sm">
+      <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
+        <AlertCircle className="h-4 w-4 text-orange-600 flex-shrink-0" />
+        <p className="flex-1 min-w-[200px] text-sm text-gray-700">
+          <span className="font-semibold text-gray-900">{title}.</span> {description}
+        </p>
+        <button
+          onClick={onNavigateToProfile}
+          className="flex-shrink-0 inline-flex items-center gap-1.5 bg-orange-600 text-white px-3.5 py-1.5 rounded-lg hover:bg-orange-700 transition-colors font-semibold text-xs"
+        >
+          Complete Profile
+          <ArrowRight className="h-3.5 w-3.5" />
+        </button>
+        <button
+          onClick={() => setDismissed(true)}
+          className="flex-shrink-0 text-gray-400 hover:text-gray-600"
+          aria-label="Dismiss"
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
     </div>
   );

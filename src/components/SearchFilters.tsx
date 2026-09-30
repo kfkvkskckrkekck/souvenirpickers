@@ -43,36 +43,36 @@ export function SearchFilters({
   const [showFilters, setShowFilters] = useState(false);
 
   return (
-    <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-      <div className="flex flex-col md:flex-row gap-4 mb-4">
+    <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-4">
+      <div className="flex flex-col md:flex-row gap-3 mb-4">
         <div className="flex-1 relative">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search souvenirs by title or description..."
-            className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full pl-11 pr-4 py-2.5 border border-gray-200 bg-gray-50 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 focus:bg-white transition-colors"
           />
         </div>
 
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className="flex items-center gap-2 px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+          className="flex items-center gap-2 px-5 py-2.5 bg-gray-50 border border-gray-200 hover:bg-gray-100 rounded-xl font-semibold text-sm text-gray-700 transition-colors"
         >
-          <SlidersHorizontal className="w-5 h-5" />
+          <SlidersHorizontal className="w-4 h-4" />
           Filters
           {hasActiveFilters && (
-            <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full">Active</span>
+            <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">Active</span>
           )}
         </button>
 
         {hasActiveFilters && (
           <button
             onClick={onClearFilters}
-            className="flex items-center gap-2 px-6 py-3 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg font-medium transition-colors"
+            className="flex items-center gap-2 px-5 py-2.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl font-semibold text-sm transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
             Clear
           </button>
         )}

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Package } from 'lucide-react';
 
 type MediaGalleryProps = {
   images: string[];
@@ -16,10 +16,12 @@ export function MediaGallery({ images, videos, title }: MediaGalleryProps) {
 
   if (totalMedia === 0) {
     return (
-      <div className="w-full h-48 bg-gradient-to-br from-blue-100 to-orange-100 flex items-center justify-center rounded-t-2xl">
-        <div className="text-gray-400 text-center">
-          <div className="text-4xl mb-2">📦</div>
-          <div className="text-sm">No media available</div>
+      <div className="w-full h-48 bg-gradient-to-br from-blue-50 via-white to-orange-50 flex items-center justify-center rounded-t-2xl">
+        <div className="text-center">
+          <div className="w-14 h-14 mx-auto mb-2.5 rounded-2xl bg-white shadow-sm ring-1 ring-gray-100 flex items-center justify-center">
+            <Package className="w-6 h-6 text-gray-300" strokeWidth={1.75} />
+          </div>
+          <div className="text-xs font-medium text-gray-400 tracking-wide">No media available</div>
         </div>
       </div>
     );
