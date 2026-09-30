@@ -182,17 +182,19 @@ Deno.serve(async (req: Request) => {
               .insert([
                 {
                   user_id: order.picker_id,
-                  title: 'Payment Received',
-                  message: `Payment of €${paymentIntentRecord.amount} received for order. Start preparing the items!`,
-                  type: 'payment',
+                  title: 'New Order Received!',
+                  message: `A buyer paid €${paymentIntentRecord.amount} for an order. Please prepare it and mark it as shipped.`,
+                  type: 'new_order_picker',
                   link: `/orders`,
+                  metadata: { order_id: order.id, action: 'prepare_item' },
                 },
                 {
                   user_id: order.client_id,
                   title: 'Payment Successful',
-                  message: `Your payment of €${paymentIntentRecord.amount} was successful. The picker will start working on your order.`,
-                  type: 'payment',
+                  message: `Your payment of €${paymentIntentRecord.amount} was received. The picker will prepare and ship your order.`,
+                  type: 'order_confirmation',
                   link: `/orders`,
+                  metadata: { order_id: order.id, action_text: 'View Order', action_url: '/orders' },
                 },
               ]);
 

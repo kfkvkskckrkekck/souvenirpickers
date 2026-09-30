@@ -124,6 +124,21 @@ Deno.serve(async (req: Request) => {
       },
     });
 
+    // Mark the earning paid immediately - this is the guard (checked above,
+    // "Already paid out") that stops a retry from transferring twice. It
+    // must happen right after the transfer succeeds, not after the bank
+    // payout or the other bookkeeping below: if this function crashed or
+    // timed out any time after those later steps but before this update,
+    // the escrow would still look unpaid and the next cron run would
+    // create a second real Stripe transfer for the same earning.
+    await supabase
+      .from("picker_earnings")
+      .update({
+        status: "paid",
+        paid_at: new Date().toISOString(),
+      })
+      .eq("id", earning.id);
+
     // The transfer above only moves funds into the picker's connected
     // Stripe account balance. Reaching their actual bank account requires a
     // separate payout - and their account's payout schedule defaults to
@@ -154,15 +169,6 @@ Deno.serve(async (req: Request) => {
       bankPayoutError = payoutError instanceof Error ? payoutError.message : String(payoutError);
       console.error("Bank payout failed (transfer still succeeded):", bankPayoutError);
     }
-
-    // Update earning status to paid
-    await supabase
-      .from("picker_earnings")
-      .update({
-        status: "paid",
-        paid_at: new Date().toISOString(),
-      })
-      .eq("id", earning.id);
 
     // Record the payout for the picker's payout history
     await supabase.from("picker_payouts").insert({
@@ -207,6 +213,11 @@ Deno.serve(async (req: Request) => {
         ? `Your payout of ${(payoutAmount / 100).toFixed(2)} ${(earning.currency || "eur").toUpperCase()} is on its way to your bank account`
         : `Your payout of ${(payoutAmount / 100).toFixed(2)} ${(earning.currency || "eur").toUpperCase()} has been added to your account balance`,
       link: "/earnings",
+      metadata: {
+        order_id: resolved_order_id,
+        action_text: "View Earnings",
+        action_url: "/earnings",
+      },
     });
 
     return new Response(
