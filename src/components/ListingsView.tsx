@@ -1461,7 +1461,7 @@ export function ListingsView({
           filteredListings.map((listing) => (
             <div
               key={listing.id}
-              className="group bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
+              className="group bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 cursor-pointer h-full flex flex-col"
               onClick={() => {
                 if (listing.picker_id) {
                   trackPickerView(listing.picker_id, "listing", listing.id);
@@ -1475,7 +1475,7 @@ export function ListingsView({
                 title={listing.title}
               />
 
-              <div className="p-5">
+              <div className="p-5 flex flex-col flex-1">
                 <div className="flex items-start justify-between gap-3 mb-1.5">
                   <h3 className="text-lg font-bold text-gray-900 flex-1 leading-snug tracking-tight line-clamp-1">
                     {listing.title}
@@ -1484,11 +1484,11 @@ export function ListingsView({
                     <VerificationBadge storagePath={listing.images[0]} />
                   )}
                 </div>
-                <p className="text-sm text-gray-500 mb-3.5 line-clamp-2 leading-relaxed">
+                <p className="text-sm text-gray-500 mb-3 line-clamp-2 leading-relaxed">
                   {listing.description}
                 </p>
 
-                <div className="flex flex-wrap gap-2 mb-4">
+                <div className="flex flex-wrap gap-2 mb-3">
                   <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 text-xs font-semibold px-2.5 py-1 rounded-full">
                     <MapPin className="w-3.5 h-3.5" />
                     {listing.region}
@@ -1503,7 +1503,7 @@ export function ListingsView({
 
                 {(listing.pickup_location ||
                   (listing.latitude && listing.longitude)) && (
-                  <div className="mb-4 p-3 bg-gray-50 rounded-xl text-sm">
+                  <div className="mb-3 p-2.5 bg-gray-50 rounded-xl text-sm">
                     {listing.pickup_location && (
                       <div className="flex items-start gap-2 text-gray-700">
                         <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-500" />
@@ -1528,7 +1528,7 @@ export function ListingsView({
                 )}
 
                 {listing.picker?.profile && (
-                  <div className="mb-4 pb-4 border-b border-gray-100">
+                  <div className="mb-3 pb-3 border-b border-gray-100">
                     <div className="flex items-start justify-between">
                       <div className="flex-1 flex items-center gap-2.5">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-orange-400 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
@@ -1566,61 +1566,59 @@ export function ListingsView({
                   </div>
                 )}
 
-                <div className="flex flex-col gap-4">
-                  <div className="flex items-baseline justify-between pt-0.5">
+                <div className="flex flex-col gap-3 mt-auto">
+                  <div className="flex items-baseline justify-between">
                     <div>
-                      <div className="text-3xl font-extrabold text-gray-900 tracking-tight">
+                      <div className="text-2xl font-extrabold text-gray-900 tracking-tight">
                         €{listing.price.toFixed(2)}
                       </div>
-                      <div className="text-xs text-gray-500 font-medium mt-1">
+                      <div className="text-xs text-gray-500 font-medium mt-0.5">
                         + delivery costs at checkout
                       </div>
                     </div>
                   </div>
                   {profile?.user_type === "client" && (
-                    <div className="flex flex-col gap-2.5">
+                    <div className="flex gap-2">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           setCheckoutListing(listing);
                         }}
-                        className="w-full bg-blue-600 text-white px-6 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-blue-700 hover:shadow-md transition-all flex items-center justify-center gap-2"
+                        className="flex-1 bg-blue-600 text-white px-4 py-2.5 rounded-xl font-bold text-sm shadow-sm hover:bg-blue-700 hover:shadow-md transition-all flex items-center justify-center gap-2"
                       >
                         <ShoppingCart className="w-4 h-4" />
                         Buy Now
                       </button>
-                      <div className="grid grid-cols-3 gap-2">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleAddToCart(listing);
-                          }}
-                          className="bg-emerald-50 text-emerald-700 px-3 py-2.5 rounded-xl font-semibold text-xs hover:bg-emerald-100 transition-colors flex items-center justify-center gap-1.5"
-                        >
-                          <ShoppingBag className="w-4 h-4" />
-                          Cart
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openAddToCollectionModal(listing);
-                          }}
-                          className="bg-pink-50 text-pink-700 px-3 py-2.5 rounded-xl font-semibold text-xs hover:bg-pink-100 transition-colors flex items-center justify-center gap-1.5"
-                        >
-                          <Heart className="w-4 h-4" />
-                          Save
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleContactPicker(listing);
-                          }}
-                          className="bg-gray-100 text-gray-700 px-3 py-2.5 rounded-xl font-semibold text-xs hover:bg-gray-200 transition-colors flex items-center justify-center gap-1.5"
-                        >
-                          <MessageCircle className="w-4 h-4" />
-                          Chat
-                        </button>
-                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddToCart(listing);
+                        }}
+                        title="Add to cart"
+                        className="w-10 h-10 flex-shrink-0 bg-emerald-50 text-emerald-700 rounded-xl hover:bg-emerald-100 transition-colors flex items-center justify-center"
+                      >
+                        <ShoppingBag className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openAddToCollectionModal(listing);
+                        }}
+                        title="Save to collection"
+                        className="w-10 h-10 flex-shrink-0 bg-pink-50 text-pink-700 rounded-xl hover:bg-pink-100 transition-colors flex items-center justify-center"
+                      >
+                        <Heart className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleContactPicker(listing);
+                        }}
+                        title="Chat with picker"
+                        className="w-10 h-10 flex-shrink-0 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors flex items-center justify-center"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                      </button>
                     </div>
                   )}
                   {profile?.user_type === "picker" && (
