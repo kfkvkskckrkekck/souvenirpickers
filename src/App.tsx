@@ -500,7 +500,7 @@ function AppContent() {
             {currentView === "cookie-policy" && <CookiePolicyView />}
           </Suspense>
 
-          {currentView === "home" && <Footer />}
+          {/* {currentView === "home" && <Footer />} */}
         </div>
       </div>
       <Footer onViewChange={handleViewChange} />

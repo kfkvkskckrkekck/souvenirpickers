@@ -1477,7 +1477,7 @@ export function ProfileView() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="bg-gradient-to-br from-blue-50 to-green-50 rounded-2xl shadow-xl p-6 sm:p-8 mb-6">
         <div className="flex items-center gap-4 mb-2">
           <div className="bg-blue-600 rounded-2xl p-3 shadow-lg">

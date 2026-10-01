@@ -162,7 +162,7 @@ export function SubscriptionView() {
 
   if (!profile || !subscriptionInfo) {
     return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-center h-64">
           <div className="text-gray-500">Loading subscription details...</div>
         </div>
@@ -178,7 +178,7 @@ export function SubscriptionView() {
 
   if (isClient) {
     return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Account</h1>
 
         <div className="bg-gradient-to-br from-green-50 to-blue-50 rounded-2xl shadow-lg p-8 mb-6">
@@ -241,7 +241,7 @@ export function SubscriptionView() {
   const isEarlyAdopter = profile.is_early_adopter === true;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Subscription</h1>
         {subscriptionInfo.isActive && !isEarlyAdopter && (
