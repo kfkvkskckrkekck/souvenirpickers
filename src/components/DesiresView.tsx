@@ -337,7 +337,7 @@ export function DesiresView({ onViewChange }: DesiresViewProps = {}) {
 
   if (loading) {
     return (
-      <div className="max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-center h-64">
           <div className="text-gray-500">Loading desires...</div>
         </div>
@@ -346,24 +346,29 @@ export function DesiresView({ onViewChange }: DesiresViewProps = {}) {
   }
 
   return (
-    <div className="max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            {profile?.user_type === 'client' ? 'My Souvenir Desires' : 'Client Desires'}
-          </h1>
-          <p className="text-gray-600 mt-1">
-            {profile?.user_type === 'client'
-              ? 'Tell pickers what you\'re looking for'
-              : 'Browse what clients are looking for'}
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+            <Heart className="w-5 h-5 text-blue-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+              {profile?.user_type === 'client' ? 'My Souvenir Desires' : 'Client Desires'}
+            </h1>
+            <p className="text-sm text-gray-500">
+              {profile?.user_type === 'client'
+                ? 'Tell pickers what you\'re looking for'
+                : 'Browse what clients are looking for'}
+            </p>
+          </div>
         </div>
         {profile?.user_type === 'client' && (
           <button
             onClick={() => setShowCreateForm(!showCreateForm)}
-            className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-4 rounded-xl font-bold hover:from-blue-700 hover:to-blue-800 transition-all transform hover:scale-105 flex items-center gap-3 whitespace-nowrap shadow-xl text-lg"
+            className="flex-shrink-0 bg-blue-600 text-white px-5 py-3 rounded-xl font-semibold shadow-sm hover:bg-blue-700 hover:shadow-md transition-all flex items-center gap-2 whitespace-nowrap"
           >
-            <Plus className="w-6 h-6" />
+            <Plus className="w-5 h-5" />
             Add New Desire
           </button>
         )}
