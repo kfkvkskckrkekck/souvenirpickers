@@ -370,29 +370,29 @@ export function HomeView({ onViewChange }: HomeViewProps) {
               <div className="grid md:grid-cols-3 gap-8 mt-8">
                 <div className="bg-white bg-opacity-10 p-6 rounded-2xl backdrop-blur-sm">
                   <div className="text-5xl font-extrabold mb-4 text-white">1</div>
-                  <h3 className="font-bold text-xl mb-3">Submit a Request</h3>
+                  <h3 className="font-bold text-xl mb-3">Browse Listings</h3>
                   <p className="text-orange-100 text-lg leading-relaxed">
-                    Describe the souvenir you want and the region it's from
+                    Explore unique, ready-to-buy souvenirs from verified pickers around the world
                   </p>
                 </div>
                 <div className="bg-white bg-opacity-10 p-6 rounded-2xl backdrop-blur-sm">
                   <div className="text-5xl font-extrabold mb-4 text-white">2</div>
-                  <h3 className="font-bold text-xl mb-3">Connect with Pickers</h3>
+                  <h3 className="font-bold text-xl mb-3">Buy & Checkout</h3>
                   <p className="text-orange-100 text-lg leading-relaxed">
-                    Pickers in that region will respond with offers and details
+                    Shipping is calculated automatically at checkout — pay securely with escrow protection
                   </p>
                 </div>
                 <div className="bg-white bg-opacity-10 p-6 rounded-2xl backdrop-blur-sm">
                   <div className="text-5xl font-extrabold mb-4 text-white">3</div>
-                  <h3 className="font-bold text-xl mb-3">Receive Your Item</h3>
+                  <h3 className="font-bold text-xl mb-3">Track & Receive</h3>
                   <p className="text-orange-100 text-lg leading-relaxed">
-                    Track the process and receive your unique souvenir
+                    Follow your order as it ships and confirm delivery once your souvenir arrives
                   </p>
                 </div>
               </div>
               <div className="mt-8 flex gap-4">
                 <button
-                  onClick={() => onViewChange('desires')}
+                  onClick={() => onViewChange('listings')}
                   className="bg-white text-orange-600 px-8 py-4 rounded-xl font-bold text-lg hover:bg-orange-50 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center gap-2"
                 >
                   Get Started Now
