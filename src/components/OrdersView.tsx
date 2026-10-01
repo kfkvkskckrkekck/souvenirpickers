@@ -408,31 +408,38 @@ export function OrdersView({ onViewChange, initialOrderId }: OrdersViewProps = {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">
-          {profile?.user_type === 'client' ? 'My Orders' : 'Orders to Fulfill'}
-        </h1>
-        <p className="text-gray-600 mt-1">
-          {profile?.user_type === 'client'
-            ? 'Track your souvenir orders'
-            : 'Manage customer orders'}
-        </p>
+      <div className="flex items-center gap-3 mb-8">
+        <div className="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+          <Package className="w-5 h-5 text-blue-600" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+            {profile?.user_type === 'client' ? 'My Orders' : 'Orders to Fulfill'}
+          </h1>
+          <p className="text-sm text-gray-500">
+            {profile?.user_type === 'client'
+              ? 'Track your souvenir orders'
+              : 'Manage customer orders'}
+          </p>
+        </div>
       </div>
 
       {profile?.user_type === 'picker' && !payoutSetupComplete && (
-        <div className="bg-red-50 border-2 border-red-300 rounded-lg p-5 mb-6">
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-5 mb-6">
           <div className="flex items-start gap-3">
-            <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
+            <div className="w-9 h-9 rounded-xl bg-red-100 flex items-center justify-center flex-shrink-0">
+              <AlertCircle className="w-5 h-5 text-red-600" />
+            </div>
             <div className="flex-1">
-              <p className="text-base font-bold text-red-900 mb-2">
+              <p className="text-base font-bold text-red-900 mb-1">
                 Bank Account Setup Required
               </p>
-              <p className="text-sm text-red-800 mb-3">
+              <p className="text-sm text-red-700 mb-3">
                 You cannot receive payments until you set up your bank account. Collectors will see an error if they try to pay for your listings.
               </p>
               <button
                 onClick={() => onViewChange?.('profile')}
-                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors font-medium text-sm inline-flex items-center gap-2"
+                className="bg-red-600 text-white px-4 py-2 rounded-xl hover:bg-red-700 transition-colors font-semibold text-sm inline-flex items-center gap-2 shadow-sm"
               >
                 <DollarSign className="w-4 h-4" />
                 Set Up Bank Account Now
@@ -442,15 +449,15 @@ export function OrdersView({ onViewChange, initialOrderId }: OrdersViewProps = {
         </div>
       )}
 
-      <div className="mb-6 flex flex-wrap gap-2">
+      <div className="inline-flex flex-wrap gap-1 p-1 bg-gray-100 rounded-xl mb-6">
         {filterOptions.map((option) => (
           <button
             key={option.value}
             onClick={() => setFilter(option.value)}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
               filter === option.value
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
             }`}
           >
             {option.label}
@@ -460,83 +467,88 @@ export function OrdersView({ onViewChange, initialOrderId }: OrdersViewProps = {
 
       <div className="space-y-4">
         {filteredOrders.length === 0 ? (
-          <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-            <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500 text-lg">No orders found</p>
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-16 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-4">
+              <Package className="w-8 h-8 text-gray-300" />
+            </div>
+            <p className="text-gray-700 font-semibold">No orders found</p>
+            <p className="text-sm text-gray-400 mt-1">Orders matching this filter will show up here</p>
           </div>
         ) : (
           filteredOrders.map((order) => (
             <div
               key={order.id}
               ref={(el) => { orderRefs.current[order.id] = el; }}
-              className={`rounded-2xl shadow-lg p-6 hover:shadow-xl transition-all duration-500 ${
+              className={`rounded-2xl p-6 transition-all duration-500 ${
                 highlightedOrderId === order.id
-                  ? 'bg-blue-50 border-2 border-blue-400 shadow-blue-200'
-                  : 'bg-white'
+                  ? 'bg-blue-50 border-2 border-blue-300 shadow-md'
+                  : 'bg-white border border-gray-100 shadow-sm hover:shadow-md'
               }`}
             >
-              <div className="flex gap-6">
-                {order.listing?.images[0] && (
+              <div className="flex gap-5">
+                {order.listing?.images[0] ? (
                   <img
                     src={order.listing.images[0]}
                     alt={order.listing.title}
-                    className="w-32 h-32 object-cover rounded-lg"
+                    className="w-28 h-28 object-cover rounded-xl ring-1 ring-gray-100 flex-shrink-0"
                   />
+                ) : (
+                  <div className="w-28 h-28 rounded-xl bg-gray-50 ring-1 ring-gray-100 flex items-center justify-center flex-shrink-0">
+                    <Package className="w-8 h-8 text-gray-300" />
+                  </div>
                 )}
-                <div className="flex-1">
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-900">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="min-w-0">
+                      <h3 className="text-lg font-bold text-gray-900 tracking-tight truncate">
                         {order.listing?.title}
                       </h3>
-                      <p className="text-sm text-gray-500 mt-1">
+                      <p className="text-xs text-gray-400 mt-0.5">
                         Order #{order.id.slice(0, 8)}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <span
+                      className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(
+                        order.status as OrderStatus
+                      )}`}
+                    >
                       {getStatusIcon(order.status as OrderStatus)}
-                      <span
-                        className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(
-                          order.status as OrderStatus
-                        )}`}
-                      >
-                        {profile && getStatusDisplay(order.status as OrderStatus, profile.user_type as 'collector' | 'picker', order.payment_status)}
-                      </span>
-                    </div>
+                      {profile && getStatusDisplay(order.status as OrderStatus, profile.user_type as 'collector' | 'picker', order.payment_status)}
+                    </span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <User className="w-4 h-4" />
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2 mb-4 text-sm">
+                    <div className="flex items-center gap-1.5 text-gray-500">
+                      <User className="w-3.5 h-3.5 flex-shrink-0" />
                       {profile?.user_type === 'client' ? (
-                        <span>Picker: {order.picker?.full_name}</span>
+                        <span className="truncate">{order.picker?.full_name}</span>
                       ) : (
-                        <span>Client: {order.client?.full_name}</span>
+                        <span className="truncate">{order.client?.full_name}</span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <Package className="w-4 h-4" />
-                      <span>Quantity: {order.quantity}</span>
+                    <div className="flex items-center gap-1.5 text-gray-500">
+                      <Package className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span>Qty {order.quantity}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <DollarSign className="w-4 h-4" />
-                      <span className="font-semibold">${order.total_price.toFixed(2)}</span>
+                    <div className="flex items-center gap-1.5 text-gray-900 font-semibold">
+                      <DollarSign className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
+                      <span>${order.total_price.toFixed(2)}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <Clock className="w-4 h-4" />
+                    <div className="flex items-center gap-1.5 text-gray-500">
+                      <Clock className="w-3.5 h-3.5 flex-shrink-0" />
                       <span>{new Date(order.created_at).toLocaleDateString()}</span>
                     </div>
                   </div>
 
                   {order.delivery_address && (
-                    <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-start gap-2 text-sm">
-                        <MapPin className="w-4 h-4 text-gray-500 mt-0.5" />
-                        <div className="flex-1">
-                          <p className="font-medium text-gray-700">Delivery Address:</p>
-                          <p className="text-gray-600">{order.delivery_address}</p>
+                    <div className="mb-3 p-3.5 bg-gray-50 rounded-xl">
+                      <div className="flex items-start gap-2.5 text-sm">
+                        <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-gray-700 text-xs uppercase tracking-wide">Delivery Address</p>
+                          <p className="text-gray-600 mt-0.5">{order.delivery_address}</p>
                           {order.delivery_instructions && (
-                            <p className="text-gray-500 mt-1 text-xs">
+                            <p className="text-gray-400 mt-1 text-xs">
                               Instructions: {order.delivery_instructions}
                             </p>
                           )}
@@ -545,15 +557,18 @@ export function OrdersView({ onViewChange, initialOrderId }: OrdersViewProps = {
                     </div>
                   )}
 
-                  <div className="mb-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                  <div className="mb-3 rounded-xl border border-gray-100 bg-gray-50 p-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div><p className="text-xs uppercase tracking-wide text-gray-500">Shipping</p><p className="font-semibold text-gray-900">{order.shipping_carrier || 'Sendcloud'} · {order.shipping_service || 'Awaiting label'}</p></div>
-                      <span className={`rounded-full px-3 py-1 text-xs font-semibold ${order.shipping_label_url ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}`}>{order.shipping_label_url ? 'Label Ready' : 'Awaiting Label'}</span>
+                      <div>
+                        <p className="text-xs uppercase tracking-wide text-gray-500 font-semibold">Shipping</p>
+                        <p className="font-semibold text-gray-900 text-sm mt-0.5">{order.shipping_carrier || 'Sendcloud'} · {order.shipping_service || 'Awaiting label'}</p>
+                      </div>
+                      <span className={`flex-shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${order.shipping_label_url ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>{order.shipping_label_url ? 'Label Ready' : 'Awaiting Label'}</span>
                     </div>
-                    {order.tracking_number && <button onClick={() => void navigator.clipboard.writeText(order.tracking_number!)} className="mt-3 text-sm font-medium text-blue-700 hover:text-blue-900">Tracking: {order.tracking_number} · Copy</button>}
+                    {order.tracking_number && <button onClick={() => void navigator.clipboard.writeText(order.tracking_number!)} className="mt-3 text-sm font-semibold text-blue-600 hover:text-blue-700">Tracking: {order.tracking_number} · Copy</button>}
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {order.shipping_label_url && <button onClick={() => window.open(order.shipping_label_url, '_blank', 'noopener,noreferrer')} className="rounded-lg bg-green-700 px-3 py-2 text-sm font-semibold text-white hover:bg-green-800">Download Shipping Label</button>}
-                      {profile?.user_type === 'client' && <button onClick={() => onViewChange?.('order-tracking', undefined, order.id)} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700"><Truck className="w-4 h-4" /> Track your order</button>}
+                      {order.shipping_label_url && <button onClick={() => window.open(order.shipping_label_url, '_blank', 'noopener,noreferrer')} className="rounded-xl bg-green-700 px-3.5 py-2 text-sm font-semibold text-white hover:bg-green-800 transition-colors shadow-sm">Download Shipping Label</button>}
+                      {profile?.user_type === 'client' && <button onClick={() => onViewChange?.('order-tracking', undefined, order.id)} className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-3.5 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors shadow-sm"><Truck className="w-4 h-4" /> Track your order</button>}
                     </div>
                   </div>
 
@@ -564,10 +579,12 @@ export function OrdersView({ onViewChange, initialOrderId }: OrdersViewProps = {
                   )}
 
                   {order.pickup_video_url && (
-                    <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border-2 border-blue-200">
+                    <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl border border-blue-100">
                       <div className="flex items-center gap-2 mb-3">
-                        <Video className="w-5 h-5 text-blue-600" />
-                        <h4 className="font-semibold text-gray-900">Pickup Moment</h4>
+                        <div className="w-8 h-8 rounded-lg bg-white/70 flex items-center justify-center flex-shrink-0">
+                          <Video className="w-4 h-4 text-blue-600" />
+                        </div>
+                        <h4 className="font-semibold text-gray-900 text-sm">Pickup Moment</h4>
                         <span className="text-xs text-gray-500 ml-auto">
                           {new Date(order.pickup_video_uploaded_at || '').toLocaleDateString()}
                         </span>
@@ -578,7 +595,7 @@ export function OrdersView({ onViewChange, initialOrderId }: OrdersViewProps = {
                         preload="metadata"
                         playsInline
                         controlsList="nodownload"
-                        className="w-full rounded-lg shadow-lg bg-black"
+                        className="w-full rounded-xl shadow-sm bg-black"
                         style={{ maxHeight: '300px' }}
                         onError={(e) => {
 
@@ -605,7 +622,7 @@ export function OrdersView({ onViewChange, initialOrderId }: OrdersViewProps = {
                           href={order.pickup_video_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-md text-sm whitespace-nowrap"
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors shadow-sm text-sm whitespace-nowrap"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -664,7 +681,7 @@ export function OrdersView({ onViewChange, initialOrderId }: OrdersViewProps = {
                             input?.click();
                           }}
                           disabled={uploadingVideo === order.id}
-                          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold text-sm hover:from-blue-700 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                         >
                           {uploadingVideo === order.id ? (
                             <>
@@ -685,15 +702,17 @@ export function OrdersView({ onViewChange, initialOrderId }: OrdersViewProps = {
                       <>
                         <button
                           onClick={() => updateOrderStatus(order.id, 'processing')}
-                          className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl font-semibold text-sm hover:bg-green-700 transition-colors shadow-sm"
                         >
-                          ✓ Accept & Start Order
+                          <CheckCircle className="w-4 h-4" />
+                          Accept & Start Order
                         </button>
                         <button
                           onClick={() => updateOrderStatus(order.id, 'cancelled')}
-                          className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-white text-red-600 border border-red-200 rounded-xl font-semibold text-sm hover:bg-red-50 transition-colors"
                         >
-                          ✕ Decline Order
+                          <XCircle className="w-4 h-4" />
+                          Decline Order
                         </button>
                       </>
                     )}
@@ -707,11 +726,11 @@ export function OrdersView({ onViewChange, initialOrderId }: OrdersViewProps = {
                               value={trackingNumber}
                               onChange={(e) => setTrackingNumber(e.target.value)}
                               placeholder="Tracking number (optional)"
-                              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              className="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
                             />
                             <button
                               onClick={() => handleMarkShipped(order.id)}
-                              className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors whitespace-nowrap"
+                              className="px-4 py-2 bg-green-600 text-white rounded-xl font-semibold text-sm hover:bg-green-700 transition-colors whitespace-nowrap shadow-sm"
                             >
                               Confirm Shipped
                             </button>
@@ -720,7 +739,7 @@ export function OrdersView({ onViewChange, initialOrderId }: OrdersViewProps = {
                                 setMarkingShipped(null);
                                 setTrackingNumber('');
                               }}
-                              className="px-4 py-2 bg-gray-500 text-white rounded-lg font-medium hover:bg-gray-600 transition-colors"
+                              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-semibold text-sm hover:bg-gray-200 transition-colors"
                             >
                               Cancel
                             </button>
@@ -728,19 +747,20 @@ export function OrdersView({ onViewChange, initialOrderId }: OrdersViewProps = {
                         ) : (
                           <button
                             onClick={() => setMarkingShipped(order.id)}
-                            className="px-4 py-2 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg font-medium hover:from-green-700 hover:to-blue-700 transition-all shadow-md"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold text-sm hover:bg-blue-700 transition-colors shadow-sm"
                           >
-                            📦 Mark as Shipped
+                            <Package className="w-4 h-4" />
+                            Mark as Shipped
                           </button>
                         )}
                       </>
                     )}
 
                     {profile?.user_type === 'picker' && order.shipped_at && (
-                      <div className="w-full p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="w-full p-3.5 bg-green-50 border border-green-100 rounded-xl">
                         <div className="flex items-center gap-2 text-green-700 text-sm">
                           <CheckCircle className="w-4 h-4" />
-                          <span className="font-medium">
+                          <span className="font-semibold">
                             Shipped on {new Date(order.shipped_at).toLocaleDateString()}
                           </span>
                         </div>
@@ -750,7 +770,7 @@ export function OrdersView({ onViewChange, initialOrderId }: OrdersViewProps = {
                           </div>
                         )}
                         {order.auto_release_at && !order.goods_confirmed && (
-                          <div className="mt-2 text-xs text-gray-600">
+                          <div className="mt-2 text-xs text-gray-500">
                             Auto-release: {new Date(order.auto_release_at).toLocaleDateString()}
                           </div>
                         )}
@@ -760,40 +780,33 @@ export function OrdersView({ onViewChange, initialOrderId }: OrdersViewProps = {
                     {profile?.user_type === 'picker' && ['processing', 'shipped'].includes(order.status) && (
                       <button
                         onClick={() => setDisputingOrder(order.id)}
-                        className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-white text-red-600 border border-red-200 rounded-xl font-semibold text-sm hover:bg-red-50 transition-colors"
                       >
+                        <AlertTriangle className="w-4 h-4" />
                         File Dispute
                       </button>
                     )}
 
-                    {profile?.user_type === 'client' && order.status === 'shipped' && (
+                    {profile?.user_type === 'client' && (order.status === 'shipped' || order.status === 'processing') && (
                       <button
                         onClick={() => setDisputingOrder(order.id)}
-                        className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-white text-red-600 border border-red-200 rounded-xl font-semibold text-sm hover:bg-red-50 transition-colors"
                       >
-                        ⚠ File Dispute
-                      </button>
-                    )}
-
-                    {profile?.user_type === 'client' && order.status === 'processing' && (
-                      <button
-                        onClick={() => setDisputingOrder(order.id)}
-                        className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
-                      >
-                        ⚠ File Dispute
+                        <AlertTriangle className="w-4 h-4" />
+                        File Dispute
                       </button>
                     )}
 
                     {profile?.user_type === 'client' && order.status === 'received' && (
                       order.has_review ? (
-                        <div className="px-4 py-2 bg-green-100 text-green-700 rounded-lg font-medium flex items-center gap-2">
+                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-xl font-semibold text-sm">
                           <CheckCircle className="w-4 h-4" />
                           Review Submitted
                         </div>
                       ) : (
                         <button
                           onClick={() => setReviewingOrder(order)}
-                          className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                          className="px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold text-sm hover:bg-blue-700 transition-colors shadow-sm"
                         >
                           Write Review
                         </button>
@@ -812,7 +825,7 @@ export function OrdersView({ onViewChange, initialOrderId }: OrdersViewProps = {
                             }
                           }
                         }}
-                        className="px-4 py-2 bg-gray-600 text-white rounded-lg font-medium hover:bg-gray-700 transition-colors"
+                        className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-semibold text-sm hover:bg-gray-200 transition-colors"
                       >
                         Cancel Order
                       </button>
@@ -821,11 +834,13 @@ export function OrdersView({ onViewChange, initialOrderId }: OrdersViewProps = {
                 </div>
 
                 {disputingOrder === order.id && (
-                  <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                    <div className="flex items-start gap-2 mb-3">
-                      <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5" />
+                  <div className="mt-4 p-4 bg-red-50 border border-red-100 rounded-2xl">
+                    <div className="flex items-start gap-3 mb-3">
+                      <div className="w-9 h-9 rounded-xl bg-red-100 flex items-center justify-center flex-shrink-0">
+                        <AlertTriangle className="w-4 h-4 text-red-600" />
+                      </div>
                       <div className="flex-1">
-                        <h4 className="font-semibold text-red-900">File Dispute</h4>
+                        <h4 className="font-semibold text-red-900 text-sm">File Dispute</h4>
                         <p className="text-sm text-red-700 mt-1">
                           {profile?.user_type === 'picker'
                             ? 'Please describe the issue with this order. Our support team will review and help resolve the matter.'
@@ -840,13 +855,13 @@ export function OrdersView({ onViewChange, initialOrderId }: OrdersViewProps = {
                         ? 'Describe the issue (e.g., client communication problems, unreasonable requests, payment concerns)...'
                         : 'Explain the issue with this order (e.g., item not as described, damaged, not received)...'}
                       rows={4}
-                      className="w-full px-3 py-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent mb-3"
+                      className="w-full px-3 py-2 border border-red-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent mb-3 text-sm"
                     />
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleDispute(order.id)}
                         disabled={!disputeReason.trim()}
-                        className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-4 py-2 bg-red-600 text-white rounded-xl font-semibold text-sm hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                       >
                         Submit Dispute
                       </button>
@@ -855,7 +870,7 @@ export function OrdersView({ onViewChange, initialOrderId }: OrdersViewProps = {
                           setDisputingOrder(null);
                           setDisputeReason('');
                         }}
-                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+                        className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-semibold text-sm hover:bg-gray-200 transition-colors"
                       >
                         Cancel
                       </button>
