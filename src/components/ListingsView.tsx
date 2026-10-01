@@ -1527,7 +1527,7 @@ export function ListingsView({
                   </div>
                 )}
 
-                {listing.picker?.profile && (
+                {listing.picker?.profile && profile?.user_type !== "picker" && (
                   <div className="mb-3 pb-3 border-b border-gray-100">
                     <div className="flex items-start justify-between">
                       <div className="flex-1 flex items-center gap-2.5">

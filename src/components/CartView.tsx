@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ShoppingCart, Trash2, Plus, Minus, Loader, CheckCircle, ArrowRight, Lock, MapPin } from 'lucide-react';
+import { ShoppingCart, Trash2, Plus, Minus, Loader, CheckCircle, ArrowRight, Lock, MapPin, Package, AlertCircle, ChevronDown } from 'lucide-react';
 import { FunctionsHttpError } from '@supabase/supabase-js';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, CartItem, Listing } from '../lib/supabase';
@@ -8,6 +8,10 @@ import { CartMultiOrderPayment } from './CartMultiOrderPayment';
 
 type CartItemWithListing = CartItem & {
   listing: Listing;
+};
+
+type CartViewProps = {
+  onViewChange?: (view: string) => void;
 };
 
 type ShippingRate = {
@@ -25,7 +29,7 @@ type PendingPayment = {
   title: string;
 };
 
-export function CartView() {
+export function CartView({ onViewChange }: CartViewProps = {}) {
   const { user, profile } = useAuth();
   const [cartItems, setCartItems] = useState<CartItemWithListing[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,6 +53,7 @@ export function CartView() {
 
   const [inPaymentFlow, setInPaymentFlow] = useState(false);
   const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>([]);
+  const [openRateItemId, setOpenRateItemId] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -115,6 +120,7 @@ export function CartView() {
     setShippingRatesByItem({});
     setSelectedRateByItem({});
     setFetchingRates(false);
+    setOpenRateItemId(null);
   };
 
   // Postcode/city/country drive the shipping-rate quote, so editing any of
@@ -324,10 +330,19 @@ export function CartView() {
   if (cartItems.length === 0) {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="text-center">
-          <ShoppingCart className="w-24 h-24 mx-auto text-gray-300 mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Your cart is empty</h2>
-          <p className="text-gray-600 mb-6">Add some amazing souvenirs to get started!</p>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-16 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-4">
+            <ShoppingCart className="w-8 h-8 text-gray-300" />
+          </div>
+          <h2 className="text-lg font-bold text-gray-900 mb-1">Your cart is empty</h2>
+          <p className="text-sm text-gray-400 mb-6">Add some amazing souvenirs to get started!</p>
+          <button
+            onClick={() => onViewChange?.('listings')}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl font-semibold text-sm hover:bg-blue-700 transition-colors shadow-sm"
+          >
+            Browse Listings
+            <ArrowRight className="w-4 h-4" />
+          </button>
         </div>
       </div>
     );
@@ -335,15 +350,23 @@ export function CartView() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8 flex items-center gap-3">
-        <ShoppingCart className="w-8 h-8" />
-        Shopping Cart ({cartItems.length} {cartItems.length === 1 ? 'item' : 'items'})
-      </h1>
+      <div className="flex items-center gap-3 mb-8">
+        <div className="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+          <ShoppingCart className="w-5 h-5 text-blue-600" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Shopping Cart</h1>
+          <p className="text-sm text-gray-500">
+            {cartItems.length} {cartItems.length === 1 ? 'item' : 'items'} in your cart
+          </p>
+        </div>
+      </div>
 
       {message && (
-        <div className={`mb-6 p-4 rounded-lg ${
-          message.includes('Error') ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'
+        <div className={`mb-6 p-4 rounded-xl flex items-start gap-2.5 text-sm ${
+          message.includes('Error') ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-blue-800'
         }`}>
+          <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
           {message}
         </div>
       )}
@@ -351,50 +374,59 @@ export function CartView() {
       <div className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-4">
           {cartItems.map((item) => (
-            <div key={item.id} className="bg-white rounded-xl shadow-md p-6">
+            <div key={item.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300 p-5">
               <div className="flex gap-4">
-                {item.listing.image_url && (
+                {item.listing.image_url ? (
                   <img
                     src={item.listing.image_url}
                     alt={item.listing.title}
-                    className="w-24 h-24 object-cover rounded-lg"
+                    className="w-24 h-24 object-cover rounded-xl ring-1 ring-gray-100 flex-shrink-0"
                   />
+                ) : (
+                  <div className="w-24 h-24 rounded-xl bg-gray-50 ring-1 ring-gray-100 flex items-center justify-center flex-shrink-0">
+                    <Package className="w-7 h-7 text-gray-300" />
+                  </div>
                 )}
-                <div className="flex-1">
-                  <h3 className="text-lg font-bold text-gray-900 mb-1">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base font-bold text-gray-900 tracking-tight truncate">
                     {item.listing.title}
                   </h3>
-                  <p className="text-sm text-gray-600 mb-2">{item.listing.region}</p>
-                  <p className="text-lg font-bold text-blue-600">
-                    €{item.listing.price.toFixed(2)} each
+                  <div className="flex items-center gap-1 text-gray-500 mt-0.5 mb-2">
+                    <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span className="text-xs truncate">{item.listing.region}</span>
+                  </div>
+                  <p className="text-sm text-gray-500">
+                    €{item.listing.price.toFixed(2)} <span className="text-gray-400">each</span>
                   </p>
                 </div>
-                <div className="flex flex-col items-end gap-3">
+                <div className="flex flex-col items-end justify-between flex-shrink-0">
                   <button
                     onClick={() => removeItem(item.id)}
-                    className="text-red-500 hover:text-red-700 transition-colors"
+                    className="p-2 -m-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                   >
-                    <Trash2 className="w-5 h-5" />
+                    <Trash2 className="w-4 h-4" />
                   </button>
-                  <div className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-2">
-                    <button
-                      onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                      disabled={item.quantity <= 1}
-                      className="text-gray-600 hover:text-gray-900 disabled:opacity-50"
-                    >
-                      <Minus className="w-4 h-4" />
-                    </button>
-                    <span className="w-8 text-center font-medium">{item.quantity}</span>
-                    <button
-                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      className="text-gray-600 hover:text-gray-900"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
+                  <div className="flex flex-col items-end gap-2">
+                    <div className="flex items-center gap-1 bg-gray-50 border border-gray-100 rounded-xl p-1">
+                      <button
+                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                        disabled={item.quantity <= 1}
+                        className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-600 hover:bg-white hover:shadow-sm disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:shadow-none transition-all"
+                      >
+                        <Minus className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="w-7 text-center text-sm font-semibold text-gray-900">{item.quantity}</span>
+                      <button
+                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                        className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-600 hover:bg-white hover:shadow-sm transition-all"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <p className="text-lg font-bold text-gray-900">
+                      €{(item.listing.price * item.quantity).toFixed(2)}
+                    </p>
                   </div>
-                  <p className="text-lg font-bold text-gray-900">
-                    €{(item.listing.price * item.quantity).toFixed(2)}
-                  </p>
                 </div>
               </div>
             </div>
@@ -402,33 +434,33 @@ export function CartView() {
         </div>
 
         <div className="lg:col-span-1">
-          <div className="bg-white rounded-xl shadow-lg p-6 sticky top-4">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 pb-4 border-b border-gray-200">Order Summary</h2>
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sticky top-20">
+            <h2 className="text-lg font-bold text-gray-900 mb-5 pb-4 border-b border-gray-100">Order Summary</h2>
 
-            <div className="space-y-4 mb-6">
-              <div className="flex justify-between items-center">
-                <span className="text-base text-gray-700">Subtotal</span>
-                <span className="text-lg font-semibold text-gray-900">€{calculateSubtotal().toFixed(2)}</span>
+            <div className="space-y-3 mb-5">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-500">Subtotal</span>
+                <span className="font-semibold text-gray-900">€{calculateSubtotal().toFixed(2)}</span>
               </div>
               {referralDiscount > 0 && (
-                <div className="flex justify-between items-center bg-green-50 -mx-2 px-2 py-2 rounded">
-                  <span className="text-base text-green-700 font-medium">Referral Discount</span>
-                  <span className="text-lg font-semibold text-green-600">-€{referralDiscount.toFixed(2)}</span>
+                <div className="flex justify-between items-center bg-green-50 -mx-2 px-2 py-2 rounded-lg text-sm">
+                  <span className="text-green-700 font-medium">Referral Discount</span>
+                  <span className="font-semibold text-green-600">-€{referralDiscount.toFixed(2)}</span>
                 </div>
               )}
-              <div className="flex justify-between items-center">
-                <span className="text-base text-gray-700">Shipping</span>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-500">Shipping</span>
                 {allRatesSelected ? (
-                  <span className="text-lg font-semibold text-gray-900">€{calculateShippingTotal().toFixed(2)}</span>
+                  <span className="font-semibold text-gray-900">€{calculateShippingTotal().toFixed(2)}</span>
                 ) : (
-                  <span className="text-sm text-gray-500">Calculated at checkout</span>
+                  <span className="text-gray-400">Calculated at checkout</span>
                 )}
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 mb-6">
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100/60 border border-blue-100 rounded-xl p-4 mb-5">
               <div className="flex justify-between items-center">
-                <span className="text-lg font-bold text-gray-900">Total</span>
+                <span className="font-bold text-gray-900">Total</span>
                 <span className="text-2xl font-bold text-blue-600">€{calculateTotal().toFixed(2)}</span>
               </div>
             </div>
@@ -436,16 +468,16 @@ export function CartView() {
             {!showCheckout ? (
               <button
                 onClick={() => setShowCheckout(true)}
-                className="w-full bg-blue-600 text-white py-4 rounded-lg font-semibold text-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+                className="w-full bg-blue-600 text-white py-3.5 rounded-xl font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
               >
-                <Lock className="w-5 h-5" />
+                <Lock className="w-4 h-4" />
                 Proceed to Checkout
               </button>
             ) : (
               <div className="space-y-5">
                 <div>
                   <label className="block text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <MapPin className="w-5 h-5 text-blue-600" />
+                    <MapPin className="w-4 h-4 text-blue-600" />
                     Delivery Address
                   </label>
                   <div className="space-y-3">
@@ -453,7 +485,7 @@ export function CartView() {
                       type="text"
                       value={deliveryStreet}
                       onChange={(e) => setDeliveryStreet(e.target.value)}
-                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                      className="w-full px-4 py-2.5 border border-gray-200 bg-gray-50 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 focus:bg-white transition-colors"
                       placeholder="Street Address *"
                       required
                     />
@@ -462,14 +494,14 @@ export function CartView() {
                         type="text"
                         value={deliveryBuilding}
                         onChange={(e) => setDeliveryBuilding(e.target.value)}
-                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                        className="w-full px-4 py-2.5 border border-gray-200 bg-gray-50 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 focus:bg-white transition-colors"
                         placeholder="Building Number (Optional)"
                       />
                       <input
                         type="text"
                         value={deliveryApartment}
                         onChange={(e) => setDeliveryApartment(e.target.value)}
-                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                        className="w-full px-4 py-2.5 border border-gray-200 bg-gray-50 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 focus:bg-white transition-colors"
                         placeholder="Apartment/Unit (Optional)"
                       />
                     </div>
@@ -478,7 +510,7 @@ export function CartView() {
                         type="text"
                         value={deliveryCity}
                         onChange={(e) => handleAddressFieldChange(setDeliveryCity, e.target.value)}
-                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                        className="w-full px-4 py-2.5 border border-gray-200 bg-gray-50 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 focus:bg-white transition-colors"
                         placeholder="City *"
                         required
                       />
@@ -486,7 +518,7 @@ export function CartView() {
                         type="text"
                         value={deliveryPostalCode}
                         onChange={(e) => handleAddressFieldChange(setDeliveryPostalCode, e.target.value)}
-                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                        className="w-full px-4 py-2.5 border border-gray-200 bg-gray-50 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 focus:bg-white transition-colors"
                         placeholder="Postal Code *"
                         required
                       />
@@ -494,7 +526,7 @@ export function CartView() {
                     <select
                       value={deliveryCountry}
                       onChange={(e) => handleAddressFieldChange(setDeliveryCountry, e.target.value)}
-                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                      className="w-full px-4 py-2.5 border border-gray-200 bg-gray-50 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 focus:bg-white transition-colors"
                       required
                     >
                       <option value="">Select a country *</option>
@@ -507,60 +539,116 @@ export function CartView() {
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-900 mb-2">
-                    Delivery Instructions <span className="text-gray-500 font-normal">(Optional)</span>
+                    Delivery Instructions <span className="text-gray-400 font-normal">(Optional)</span>
                   </label>
                   <textarea
                     value={deliveryInstructions}
                     onChange={(e) => setDeliveryInstructions(e.target.value)}
                     rows={2}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    className="w-full px-4 py-2.5 border border-gray-200 bg-gray-50 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 focus:bg-white transition-colors"
                     placeholder="e.g., Leave at front door"
                   />
                 </div>
 
-                <div className="pt-6 space-y-4 border-t border-gray-200">
+                <div className="pt-5 space-y-4 border-t border-gray-100">
                   {!ratesFetched ? (
-                    <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+                    <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
                       <p className="text-sm text-blue-800">
                         Fill in your delivery address, then get live shipping rates for every item in your cart.
                       </p>
                     </div>
                   ) : (
-                    <div className="space-y-3">
-                      {cartItems.map((item) => (
-                        <div key={item.id} className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
-                          <h4 className="text-sm font-semibold text-gray-900 mb-3">
-                            Shipping for <span className="font-bold">{item.listing.title}</span>
-                          </h4>
-                          {(shippingRatesByItem[item.id] || []).length > 0 ? (
-                            <div className="space-y-2">
-                              {shippingRatesByItem[item.id].map((rate) => (
-                                <button
-                                  type="button"
-                                  key={rate.id}
-                                  onClick={() => setSelectedRateByItem((prev) => ({ ...prev, [item.id]: rate }))}
-                                  className={`w-full text-left rounded-lg border-2 p-3 transition-colors ${
-                                    selectedRateByItem[item.id]?.id === rate.id
-                                      ? 'border-blue-600 bg-white'
-                                      : 'border-blue-100 bg-white/70 hover:border-blue-400'
-                                  }`}
-                                >
-                                  <div className="flex items-center justify-between gap-3">
-                                    <div>
-                                      <p className="font-semibold text-gray-900">{rate.carrier}</p>
-                                      <p className="text-sm text-gray-700">{rate.name}</p>
-                                      <p className="text-xs text-gray-500">{rate.min_days}-{rate.max_days} business days</p>
-                                    </div>
-                                    <span className="font-bold text-gray-900">€{rate.price.toFixed(2)}</span>
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-sm font-semibold text-gray-900">Choose shipping for each item</h4>
+                        <span className="text-xs font-semibold text-gray-500">
+                          {Object.keys(selectedRateByItem).length} of {cartItems.length} selected
+                        </span>
+                      </div>
+                      <div className="space-y-2 max-h-80 overflow-y-auto pr-1 -mr-1">
+                        {cartItems.map((item) => {
+                          const rates = shippingRatesByItem[item.id] || [];
+                          const selected = selectedRateByItem[item.id];
+                          const isOpen = openRateItemId === item.id;
+
+                          return (
+                            <div
+                              key={item.id}
+                              className={`rounded-xl border transition-colors ${
+                                selected ? 'border-green-200 bg-green-50/50' : 'border-gray-200 bg-white'
+                              }`}
+                            >
+                              <div className="flex items-center gap-3 p-2.5">
+                                {item.listing.image_url ? (
+                                  <img
+                                    src={item.listing.image_url}
+                                    alt={item.listing.title}
+                                    className="w-10 h-10 rounded-lg object-cover ring-1 ring-gray-100 flex-shrink-0"
+                                  />
+                                ) : (
+                                  <div className="w-10 h-10 rounded-lg bg-gray-50 ring-1 ring-gray-100 flex items-center justify-center flex-shrink-0">
+                                    <Package className="w-4 h-4 text-gray-300" />
                                   </div>
-                                </button>
-                              ))}
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-semibold text-gray-900 truncate mb-1">{item.listing.title}</p>
+                                  {rates.length > 0 ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => setOpenRateItemId((prev) => (prev === item.id ? null : item.id))}
+                                      className={`w-full flex items-center justify-between gap-2 px-2.5 py-1.5 border rounded-lg text-xs font-medium transition-colors ${
+                                        isOpen ? 'border-blue-400 bg-white' : 'border-gray-200 bg-gray-50 hover:border-blue-300 hover:bg-white'
+                                      }`}
+                                    >
+                                      <span className={`truncate text-left ${selected ? 'text-gray-900' : 'text-gray-400'}`}>
+                                        {selected
+                                          ? `${selected.carrier} · ${selected.name} — €${selected.price.toFixed(2)}`
+                                          : 'Select shipping option...'}
+                                      </span>
+                                      <ChevronDown className={`w-3.5 h-3.5 text-gray-400 flex-shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                                    </button>
+                                  ) : (
+                                    <p className="text-xs text-red-600">No shipping options for this item.</p>
+                                  )}
+                                </div>
+                                {selected ? (
+                                  <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                                ) : (
+                                  <span className="w-4 h-4 flex-shrink-0" />
+                                )}
+                              </div>
+
+                              {isOpen && rates.length > 0 && (
+                                <div className="px-2.5 pb-2.5 space-y-1.5">
+                                  {rates.map((rate) => (
+                                    <button
+                                      type="button"
+                                      key={rate.id}
+                                      onClick={() => {
+                                        setSelectedRateByItem((prev) => ({ ...prev, [item.id]: rate }));
+                                        setOpenRateItemId(null);
+                                      }}
+                                      className={`w-full text-left rounded-lg border p-2 transition-colors ${
+                                        selected?.id === rate.id
+                                          ? 'border-blue-500 bg-blue-50'
+                                          : 'border-gray-100 bg-white hover:border-blue-300 hover:bg-blue-50/40'
+                                      }`}
+                                    >
+                                      <div className="flex items-center justify-between gap-3">
+                                        <div className="min-w-0">
+                                          <p className="font-semibold text-gray-900 text-xs truncate">{rate.carrier} · {rate.name}</p>
+                                          <p className="text-[11px] text-gray-500 mt-0.5">{rate.min_days}-{rate.max_days} business days</p>
+                                        </div>
+                                        <span className="font-bold text-gray-900 text-xs flex-shrink-0">€{rate.price.toFixed(2)}</span>
+                                      </div>
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
                             </div>
-                          ) : (
-                            <p className="text-sm text-gray-700">No shipping options returned for this item.</p>
-                          )}
-                        </div>
-                      ))}
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
 
@@ -572,28 +660,28 @@ export function CartView() {
                       !deliveryStreet.trim() || !deliveryCity.trim() || !deliveryPostalCode.trim() || !deliveryCountry.trim() ||
                       (ratesFetched && !allRatesSelected)
                     }
-                    className="w-full bg-blue-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                    className="w-full bg-blue-600 text-white py-3.5 rounded-xl font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md flex items-center justify-center gap-2"
                   >
                     {fetchingRates ? (
                       <>
-                        <Loader className="w-5 h-5 animate-spin" />
+                        <Loader className="w-4 h-4 animate-spin" />
                         Calculating Shipping...
                       </>
                     ) : checkoutLoading ? (
                       <>
-                        <Loader className="w-5 h-5 animate-spin" />
+                        <Loader className="w-4 h-4 animate-spin" />
                         Creating Orders...
                       </>
                     ) : !ratesFetched ? (
                       <>
-                        <ArrowRight className="w-5 h-5" />
+                        <ArrowRight className="w-4 h-4" />
                         Get Shipping Rates
                       </>
                     ) : !allRatesSelected ? (
                       <>Select Shipping for Every Item</>
                     ) : (
                       <>
-                        <CheckCircle className="w-5 h-5" />
+                        <CheckCircle className="w-4 h-4" />
                         Place Order & Pay
                       </>
                     )}
@@ -601,7 +689,7 @@ export function CartView() {
 
                   <button
                     onClick={resetCheckoutState}
-                    className="w-full border-2 border-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
+                    className="w-full border border-gray-200 text-gray-700 py-2.5 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
                   >
                     Cancel
                   </button>
@@ -614,11 +702,13 @@ export function CartView() {
 
       {orderSuccess && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl max-w-md w-full p-8 text-center">
+          <div className="bg-white rounded-2xl max-w-md w-full p-8 text-center">
             <div className="mb-6">
-              <CheckCircle className="w-20 h-20 mx-auto text-green-500 mb-4" />
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">Order Placed & Paid!</h2>
-              <p className="text-gray-600">
+              <div className="w-16 h-16 rounded-2xl bg-green-50 flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-8 h-8 text-green-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Order Placed & Paid!</h2>
+              <p className="text-sm text-gray-500">
                 Your payment was successful. Check your Orders page to track progress with each picker.
               </p>
             </div>
@@ -626,16 +716,16 @@ export function CartView() {
               <button
                 onClick={() => {
                   setOrderSuccess(false);
-                  window.location.href = '#orders';
+                  onViewChange?.('orders');
                 }}
-                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors shadow-sm flex items-center justify-center gap-2"
               >
                 View My Orders
-                <ArrowRight className="w-5 h-5" />
+                <ArrowRight className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setOrderSuccess(false)}
-                className="w-full border-2 border-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
+                className="w-full border border-gray-200 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
               >
                 Continue Shopping
               </button>
