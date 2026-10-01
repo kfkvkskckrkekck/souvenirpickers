@@ -1,10 +1,28 @@
 import { useState, useEffect } from 'react';
 import { ShoppingCart, Trash2, Plus, Minus, Loader, CheckCircle, ArrowRight, Lock, MapPin } from 'lucide-react';
+import { FunctionsHttpError } from '@supabase/supabase-js';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, CartItem, Listing } from '../lib/supabase';
+import { COUNTRIES, toCountryCode } from '../lib/countries';
+import { CartMultiOrderPayment } from './CartMultiOrderPayment';
 
 type CartItemWithListing = CartItem & {
   listing: Listing;
+};
+
+type ShippingRate = {
+  id: number;
+  name: string;
+  carrier: string;
+  min_days: number;
+  max_days: number;
+  price: number;
+};
+
+type PendingPayment = {
+  orderId: string;
+  amount: number;
+  title: string;
 };
 
 export function CartView() {
@@ -23,6 +41,14 @@ export function CartView() {
   const [deliveryPostalCode, setDeliveryPostalCode] = useState('');
   const [deliveryCountry, setDeliveryCountry] = useState('');
   const [referralDiscount, setReferralDiscount] = useState(0);
+
+  const [fetchingRates, setFetchingRates] = useState(false);
+  const [ratesFetched, setRatesFetched] = useState(false);
+  const [shippingRatesByItem, setShippingRatesByItem] = useState<Record<string, ShippingRate[]>>({});
+  const [selectedRateByItem, setSelectedRateByItem] = useState<Record<string, ShippingRate>>({});
+
+  const [inPaymentFlow, setInPaymentFlow] = useState(false);
+  const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>([]);
 
   useEffect(() => {
     if (user) {
@@ -81,21 +107,100 @@ export function CartView() {
   };
 
 
+  const allRatesSelected = cartItems.length > 0 && cartItems.every((item) => !!selectedRateByItem[item.id]);
+
+  const resetCheckoutState = () => {
+    setShowCheckout(false);
+    setRatesFetched(false);
+    setShippingRatesByItem({});
+    setSelectedRateByItem({});
+    setFetchingRates(false);
+  };
+
+  // Postcode/city/country drive the shipping-rate quote, so editing any of
+  // them after rates were fetched invalidates the (now stale) quotes.
+  const handleAddressFieldChange = (setter: (value: string) => void, value: string) => {
+    setter(value);
+    if (ratesFetched) {
+      setRatesFetched(false);
+      setShippingRatesByItem({});
+      setSelectedRateByItem({});
+      setMessage('');
+    }
+  };
+
   const handlePlaceOrder = async () => {
     if (!deliveryStreet.trim() || !deliveryCity.trim() || !deliveryPostalCode.trim() || !deliveryCountry.trim()) {
       setMessage('Please fill in all delivery address fields');
       return;
     }
 
+    // Phase 1: fetch shipping rates for every cart item, one quote per item/picker.
+    if (!ratesFetched) {
+      setFetchingRates(true);
+      setMessage('');
+      try {
+        const results = await Promise.all(cartItems.map(async (item) => {
+          const { data: rateData, error: rateError } = await supabase.functions.invoke('get-shipping-rates', {
+            body: {
+              product_id: item.listing_id,
+              buyer_postcode: deliveryPostalCode,
+              buyer_city: deliveryCity,
+              buyer_country: toCountryCode(deliveryCountry),
+            },
+          });
+          if (rateError) {
+            let serverMsg: string | undefined;
+            if (rateError instanceof FunctionsHttpError) {
+              try {
+                const body = await rateError.context.json();
+                serverMsg = body?.error;
+              } catch {
+                // response body wasn't valid JSON; fall through to generic message
+              }
+            }
+            throw new Error(`${item.listing.title}: ${serverMsg || rateError.message || 'Unable to get shipping rates.'}`);
+          }
+          if (rateData?.error) throw new Error(`${item.listing.title}: ${rateData.error}`);
+          const rates = Array.isArray(rateData?.rates) ? rateData.rates as ShippingRate[] : [];
+          if (rates.length === 0) throw new Error(`${item.listing.title}: Shipping is not available for this destination.`);
+          return { itemId: item.id, rates };
+        }));
+
+        const ratesMap: Record<string, ShippingRate[]> = {};
+        results.forEach((r) => { ratesMap[r.itemId] = r.rates; });
+        setShippingRatesByItem(ratesMap);
+        setRatesFetched(true);
+        setMessage('Choose a shipping option for each item to continue.');
+      } catch (error: unknown) {
+        setMessage('Error: ' + (error instanceof Error ? error.message : 'Unable to get shipping rates. Please try again.'));
+      } finally {
+        setFetchingRates(false);
+      }
+      return;
+    }
+
+    // Phase 2: require a chosen rate for every item before placing the orders.
+    if (!allRatesSelected) {
+      setMessage('Please select a shipping option for every item.');
+      return;
+    }
+
     try {
       setCheckoutLoading(true);
+      setMessage('');
       const addressParts = [deliveryStreet];
       if (deliveryBuilding) addressParts.push(deliveryBuilding);
       if (deliveryApartment) addressParts.push(deliveryApartment);
       addressParts.push(deliveryCity, deliveryPostalCode, deliveryCountry);
       const fullAddress = addressParts.filter(p => p.trim()).join(', ');
 
+      const createdOrders: PendingPayment[] = [];
+
       for (const item of cartItems) {
+        const rate = selectedRateByItem[item.id];
+        if (!rate) throw new Error('Please select a shipping option for every item.');
+
         const { data: pickerProfile, error: pickerError } = await supabase
           .from('picker_profiles')
           .select('user_id')
@@ -105,12 +210,21 @@ export function CartView() {
         if (pickerError) throw pickerError;
         if (!pickerProfile) throw new Error('Picker not found');
 
-        const { error: orderError } = await supabase.from('orders').insert({
+        const shippingTotal = rate.price;
+        const orderTotal = item.listing.price * item.quantity + shippingTotal;
+
+        const { data, error: orderError } = await supabase.from('orders').insert({
           client_id: user?.id,
           picker_id: pickerProfile.user_id,
           listing_id: item.listing_id,
           quantity: item.quantity,
-          total_price: item.listing.price * item.quantity,
+          total_price: orderTotal,
+          shipping_cost: shippingTotal,
+          shipping_carrier: rate.carrier,
+          shipping_service: rate.name,
+          estimated_delivery_days: rate.max_days > 0
+            ? `${rate.min_days}-${rate.max_days} business days`
+            : null,
           delivery_address: fullAddress,
           delivery_street: deliveryStreet,
           delivery_street_line2: `${deliveryBuilding || ''}${deliveryApartment ? ' ' + deliveryApartment : ''}`.trim() || null,
@@ -121,9 +235,19 @@ export function CartView() {
           status: 'pending',
           payment_status: 'pending',
           tracking_status: 'pending',
-        });
+        }).select().maybeSingle();
 
         if (orderError) throw orderError;
+        if (!data) throw new Error('Order creation returned no data');
+
+        await supabase.from('order_status_history').insert({
+          order_id: data.id,
+          status: 'pending',
+          notes: 'Order created',
+          changed_by: user?.id,
+        });
+
+        createdOrders.push({ orderId: data.id, amount: orderTotal, title: item.listing.title });
       }
 
       const { error: deleteError } = await supabase
@@ -133,10 +257,8 @@ export function CartView() {
 
       if (deleteError) throw deleteError;
 
-      setMessage('Order placed successfully. Shipping options will be calculated during checkout.');
-      setShowCheckout(false);
-      setOrderSuccess(true);
-      loadCart();
+      setPendingPayments(createdOrders);
+      setInPaymentFlow(true);
     } catch (error: unknown) {
       setMessage('Error creating orders: ' + (error instanceof Error ? error.message : 'Please try again.'));
       setTimeout(() => setMessage(''), 5000);
@@ -145,14 +267,49 @@ export function CartView() {
     }
   };
 
+  const handleAllOrdersPaid = () => {
+    setInPaymentFlow(false);
+    setPendingPayments([]);
+    resetCheckoutState();
+    setOrderSuccess(true);
+    loadCart();
+  };
+
+  const handlePaymentFlowCancel = () => {
+    setInPaymentFlow(false);
+    setPendingPayments([]);
+    resetCheckoutState();
+    setMessage('Checkout stopped before payment finished. Any orders already created were saved as pending but are not yet paid.');
+    loadCart();
+  };
+
 
   const calculateSubtotal = () => {
     return cartItems.reduce((sum, item) => sum + (item.listing.price * item.quantity), 0);
   };
 
-  const calculateTotal = () => {
-    return calculateSubtotal();
+  const calculateShippingTotal = () => {
+    return Object.values(selectedRateByItem).reduce((sum, rate) => sum + rate.price, 0);
   };
+
+  const calculateTotal = () => {
+    return calculateSubtotal() + (allRatesSelected ? calculateShippingTotal() : 0);
+  };
+
+  if (inPaymentFlow && pendingPayments.length > 0) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <h2 className="text-xl font-bold text-gray-900 tracking-tight mb-6">Complete Payment</h2>
+          <CartMultiOrderPayment
+            payments={pendingPayments}
+            onAllPaid={handleAllOrdersPaid}
+            onCancel={handlePaymentFlowCancel}
+          />
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -261,7 +418,11 @@ export function CartView() {
               )}
               <div className="flex justify-between items-center">
                 <span className="text-base text-gray-700">Shipping</span>
-                <span className="text-sm text-gray-500">Calculated at checkout</span>
+                {allRatesSelected ? (
+                  <span className="text-lg font-semibold text-gray-900">€{calculateShippingTotal().toFixed(2)}</span>
+                ) : (
+                  <span className="text-sm text-gray-500">Calculated at checkout</span>
+                )}
               </div>
             </div>
 
@@ -316,7 +477,7 @@ export function CartView() {
                       <input
                         type="text"
                         value={deliveryCity}
-                        onChange={(e) => setDeliveryCity(e.target.value)}
+                        onChange={(e) => handleAddressFieldChange(setDeliveryCity, e.target.value)}
                         className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                         placeholder="City *"
                         required
@@ -324,20 +485,23 @@ export function CartView() {
                       <input
                         type="text"
                         value={deliveryPostalCode}
-                        onChange={(e) => setDeliveryPostalCode(e.target.value)}
+                        onChange={(e) => handleAddressFieldChange(setDeliveryPostalCode, e.target.value)}
                         className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                         placeholder="Postal Code *"
                         required
                       />
                     </div>
-                    <input
-                      type="text"
+                    <select
                       value={deliveryCountry}
-                      onChange={(e) => setDeliveryCountry(e.target.value)}
+                      onChange={(e) => handleAddressFieldChange(setDeliveryCountry, e.target.value)}
                       className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                      placeholder="Country *"
                       required
-                    />
+                    >
+                      <option value="">Select a country *</option>
+                      {COUNTRIES.map((country) => (
+                        <option key={country} value={country}>{country}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
@@ -355,32 +519,88 @@ export function CartView() {
                 </div>
 
                 <div className="pt-6 space-y-4 border-t border-gray-200">
-                  <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg">
-                    <p className="text-sm text-amber-800">
-                      <strong>Note:</strong> Shipping cost isn't calculated for cart orders yet — only the item price is charged. For automatic shipping rates and immediate payment, use "Buy Now" from the listing page instead.
-                    </p>
-                  </div>
+                  {!ratesFetched ? (
+                    <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+                      <p className="text-sm text-blue-800">
+                        Fill in your delivery address, then get live shipping rates for every item in your cart.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {cartItems.map((item) => (
+                        <div key={item.id} className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                          <h4 className="text-sm font-semibold text-gray-900 mb-3">
+                            Shipping for <span className="font-bold">{item.listing.title}</span>
+                          </h4>
+                          {(shippingRatesByItem[item.id] || []).length > 0 ? (
+                            <div className="space-y-2">
+                              {shippingRatesByItem[item.id].map((rate) => (
+                                <button
+                                  type="button"
+                                  key={rate.id}
+                                  onClick={() => setSelectedRateByItem((prev) => ({ ...prev, [item.id]: rate }))}
+                                  className={`w-full text-left rounded-lg border-2 p-3 transition-colors ${
+                                    selectedRateByItem[item.id]?.id === rate.id
+                                      ? 'border-blue-600 bg-white'
+                                      : 'border-blue-100 bg-white/70 hover:border-blue-400'
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between gap-3">
+                                    <div>
+                                      <p className="font-semibold text-gray-900">{rate.carrier}</p>
+                                      <p className="text-sm text-gray-700">{rate.name}</p>
+                                      <p className="text-xs text-gray-500">{rate.min_days}-{rate.max_days} business days</p>
+                                    </div>
+                                    <span className="font-bold text-gray-900">€{rate.price.toFixed(2)}</span>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-gray-700">No shipping options returned for this item.</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   <button
                     onClick={handlePlaceOrder}
-                    disabled={checkoutLoading || !deliveryStreet.trim() || !deliveryCity.trim() || !deliveryPostalCode.trim() || !deliveryCountry.trim()}
+                    disabled={
+                      checkoutLoading ||
+                      fetchingRates ||
+                      !deliveryStreet.trim() || !deliveryCity.trim() || !deliveryPostalCode.trim() || !deliveryCountry.trim() ||
+                      (ratesFetched && !allRatesSelected)
+                    }
                     className="w-full bg-blue-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg flex items-center justify-center gap-2"
                   >
-                    {checkoutLoading ? (
+                    {fetchingRates ? (
                       <>
                         <Loader className="w-5 h-5 animate-spin" />
-                        Processing...
+                        Calculating Shipping...
                       </>
+                    ) : checkoutLoading ? (
+                      <>
+                        <Loader className="w-5 h-5 animate-spin" />
+                        Creating Orders...
+                      </>
+                    ) : !ratesFetched ? (
+                      <>
+                        <ArrowRight className="w-5 h-5" />
+                        Get Shipping Rates
+                      </>
+                    ) : !allRatesSelected ? (
+                      <>Select Shipping for Every Item</>
                     ) : (
                       <>
                         <CheckCircle className="w-5 h-5" />
-                        Place Order
+                        Place Order & Pay
                       </>
                     )}
                   </button>
 
                   <button
-                    onClick={() => setShowCheckout(false)}
+                    onClick={resetCheckoutState}
                     className="w-full border-2 border-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
                   >
                     Cancel
@@ -397,9 +617,9 @@ export function CartView() {
           <div className="bg-white rounded-xl max-w-md w-full p-8 text-center">
             <div className="mb-6">
               <CheckCircle className="w-20 h-20 mx-auto text-green-500 mb-4" />
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">Orders Created!</h2>
+              <h2 className="text-3xl font-bold text-gray-900 mb-2">Order Placed & Paid!</h2>
               <p className="text-gray-600">
-                Your orders have been placed. Check your Orders page to track progress with each picker.
+                Your payment was successful. Check your Orders page to track progress with each picker.
               </p>
             </div>
             <div className="space-y-3">
