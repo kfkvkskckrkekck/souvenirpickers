@@ -16,6 +16,8 @@ import {
   CreditCard as Edit2,
   Trash2,
   Heart,
+  ArrowLeft,
+  Package,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
@@ -449,6 +451,15 @@ export function ListingsView({
     setMediaLinks(mediaLinks.filter((link) => link !== url));
   };
 
+  const scrollContentToTop = () => {
+    const mainScrollArea = document.getElementById("main-scroll-area");
+    if (mainScrollArea) {
+      mainScrollArea.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
   const handleContactPicker = async (listing: ListingWithPicker) => {
     if (!profile || !listing.picker?.profile || profile.user_type !== "client")
       return;
@@ -835,12 +846,624 @@ export function ListingsView({
     new Set(listings.map((l) => l.category).filter(Boolean)),
   ).sort();
 
+  // Rendered from both the grid view and the listing-detail page, since
+  // actions on either (Buy Now, Edit, Delete, Save) can open these.
+  const globalModals = (
+    <>
+      {checkoutListing && (
+        <OrderCheckoutModal
+          listing={checkoutListing}
+          onClose={() => setCheckoutListing(null)}
+          onOrderCreated={(order) => {
+            setCheckoutListing(null);
+            toast.success(
+              "Order placed and paid! The picker will ship your order soon. Check your Orders page to track progress.",
+              8000,
+            );
+            // Navigate to orders view if available
+            if (onViewChange) {
+              setTimeout(() => onViewChange("orders"), 1500);
+            }
+          }}
+        />
+      )}
+
+      {/* Edit Modal */}
+      {showEditModal && editingListing && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto animate-scale-in">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
+              <h2 className="text-2xl font-bold text-gray-900">Edit Listing</h2>
+              <button
+                onClick={cancelEdit}
+                className="text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateListing} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Title <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g., Handcrafted Wooden Mask"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Description <span className="text-red-600">*</span>
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={4}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Describe the item in detail..."
+                  required
+                />
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Region <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={region}
+                    onChange={(e) => setRegion(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="e.g., Bali, Indonesia"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Category <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="e.g., Traditional crafts"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Item Price (€) <span className="text-red-600">*</span>
+                </label>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="number"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="0.00"
+                    min="0"
+                    step="0.01"
+                    required
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Cost of the item/service only (delivery costs added at
+                  checkout)
+                </p>
+                {price && parseFloat(price) > 0 && (
+                  <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-900 font-semibold mb-1">
+                      Platform Fee Notice: 10% will be deducted
+                    </p>
+                    <div className="text-xs text-yellow-800 space-y-1">
+                      <div className="flex justify-between">
+                        <span>Your listing price:</span>
+                        <span className="font-bold">
+                          €{parseFloat(price).toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Platform fee (10%):</span>
+                        <span className="font-bold text-red-700">
+                          -€{(parseFloat(price) * 0.1).toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between pt-1 border-t border-yellow-300">
+                        <span className="font-bold">You receive:</span>
+                        <span className="font-bold text-green-700">
+                          €{(parseFloat(price) * 0.9).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Pickup Location (optional)
+                </label>
+                <input
+                  type="text"
+                  value={pickupLocation}
+                  onChange={(e) => setPickupLocation(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g., Shibuya Station, Tokyo"
+                />
+              </div>
+
+              <LocationPicker
+                latitude={latitude}
+                longitude={longitude}
+                onLocationChange={(lat, lng) => {
+                  setLatitude(lat);
+                  setLongitude(lng);
+                }}
+                label="Item Pickup Location"
+              />
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <ImageIcon className="w-4 h-4 inline mr-1" />
+                  Upload Images
+                </label>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-blue-500 transition-colors">
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/webp"
+                    multiple
+                    onChange={handleImageUpload}
+                    className="hidden"
+                    id="edit-image-upload"
+                    disabled={uploading}
+                  />
+                  <label
+                    htmlFor="edit-image-upload"
+                    className="flex flex-col items-center justify-center cursor-pointer"
+                  >
+                    <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                    <span className="text-sm text-gray-600">
+                      Click to upload images
+                    </span>
+                  </label>
+                </div>
+
+                {uploadedImages.length > 0 && (
+                  <div className="grid grid-cols-3 gap-3 mt-3">
+                    {uploadedImages.map((url, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={url}
+                          alt={`Upload ${index + 1}`}
+                          className="w-full h-24 object-cover rounded-lg"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(url)}
+                          className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {uploadError && (
+                <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
+                  {uploadError}
+                </div>
+              )}
+
+              {createError && (
+                <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
+                  {createError}
+                </div>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  type="submit"
+                  disabled={uploading || creating}
+                  className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+                >
+                  {creating ? "Updating..." : "Update Listing"}
+                </button>
+                <button
+                  type="button"
+                  onClick={cancelEdit}
+                  className="px-6 py-3 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={deletingListingId !== null}
+        title="Delete Listing"
+        message="Are you sure you want to delete this listing? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={() => {
+          if (deletingListingId) {
+            handleDeleteListing(deletingListingId);
+          }
+        }}
+        onCancel={() => setDeletingListingId(null)}
+      />
+
+      {/* Add to Collection Modal */}
+      {showAddToCollectionModal && selectedListingForCollection && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <Heart className="w-6 h-6 text-pink-600" />
+                Add to Collection
+              </h3>
+              <button
+                onClick={() => {
+                  setShowAddToCollectionModal(false);
+                  setSelectedListingForCollection(null);
+                  setCollectionNotes("");
+                }}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+              <p className="text-sm font-medium text-gray-900">
+                {selectedListingForCollection.title}
+              </p>
+              <p className="text-xs text-gray-600 mt-1">
+                {selectedListingForCollection.region}
+              </p>
+            </div>
+
+            {collections.length === 0 ? (
+              <div className="text-center py-6">
+                <p className="text-gray-600 mb-4">
+                  You don't have any collections yet.
+                </p>
+                <button
+                  onClick={() => {
+                    setShowAddToCollectionModal(false);
+                    setSelectedListingForCollection(null);
+                    onViewChange?.("collections");
+                  }}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                >
+                  Create Your First Collection
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select Collection
+                  </label>
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {collections.map((collection) => (
+                      <button
+                        key={collection.id}
+                        onClick={() => addToCollection(collection.id)}
+                        className="w-full text-left px-4 py-3 border-2 border-gray-200 rounded-lg hover:border-pink-500 hover:bg-pink-50 transition-colors"
+                      >
+                        <span className="font-medium text-gray-900">
+                          {collection.name}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Add Notes (Optional)
+                  </label>
+                  <textarea
+                    value={collectionNotes}
+                    onChange={(e) => setCollectionNotes(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                    rows={3}
+                    placeholder="Why do you want to save this item?"
+                  />
+                </div>
+
+                <button
+                  onClick={() => {
+                    setShowAddToCollectionModal(false);
+                    setSelectedListingForCollection(null);
+                    onViewChange?.("collections");
+                  }}
+                  className="w-full px-4 py-2 text-sm text-pink-600 hover:text-pink-700 font-medium"
+                >
+                  + Create New Collection
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-center h-64">
           <div className="text-gray-500">Loading listings...</div>
         </div>
+      </div>
+    );
+  }
+
+  if (selectedListing) {
+    const moreListings = filteredListings
+      .filter((l) => l.id !== selectedListing.id)
+      .slice(0, 8);
+
+    return (
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <button
+          onClick={() => {
+            setSelectedListing(null);
+            scrollContentToTop();
+          }}
+          className="inline-flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-gray-900 mb-6 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Listings
+        </button>
+
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 mb-14">
+          <div className="lg:sticky lg:top-20 lg:self-start">
+            <div className="rounded-2xl overflow-hidden shadow-sm border border-gray-100 bg-white p-2">
+              <MediaGallery
+                images={selectedListing.images}
+                videos={selectedListing.videos || []}
+                title={selectedListing.title}
+                size="large"
+              />
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight flex-1">
+                {selectedListing.title}
+              </h1>
+              {selectedListing.images && selectedListing.images.length > 0 && (
+                <VerificationBadge storagePath={selectedListing.images[0]} />
+              )}
+            </div>
+
+            <div className="flex flex-wrap gap-2 mb-5">
+              <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 text-sm font-semibold px-3 py-1.5 rounded-full">
+                <MapPin className="w-4 h-4" />
+                {selectedListing.region}
+              </span>
+              {selectedListing.category && (
+                <span className="inline-flex items-center gap-1.5 bg-orange-50 text-orange-700 text-sm font-semibold px-3 py-1.5 rounded-full">
+                  <Tag className="w-4 h-4" />
+                  {selectedListing.category}
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-baseline gap-2 mb-6">
+              <span className="text-4xl font-bold text-gray-900 tracking-tight">
+                €{selectedListing.price.toFixed(2)}
+              </span>
+              <span className="text-sm text-gray-400 font-medium">+ delivery costs at checkout</span>
+            </div>
+
+            {profile?.user_type === "client" && (
+              <div className="space-y-2.5 mb-8">
+                <button
+                  onClick={() => {
+                    setCheckoutListing(selectedListing);
+                  }}
+                  className="w-full bg-blue-600 text-white px-6 py-3.5 rounded-xl font-bold shadow-sm hover:bg-blue-700 hover:shadow-md transition-all flex items-center justify-center gap-2"
+                >
+                  <ShoppingCart className="w-4 h-4" />
+                  Buy Now
+                </button>
+                <div className="flex gap-2.5">
+                  <button
+                    onClick={() => {
+                      handleAddToCart(selectedListing);
+                    }}
+                    className="flex-1 bg-emerald-50 text-emerald-700 px-6 py-3 rounded-xl font-semibold hover:bg-emerald-100 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <ShoppingBag className="w-4 h-4" />
+                    Add to Cart
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleContactPicker(selectedListing);
+                    }}
+                    className="flex-1 bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    Message
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {profile?.user_type === "picker" && (
+              <div className="flex gap-2.5 mb-8">
+                <button
+                  onClick={() => startEditListing(selectedListing)}
+                  className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold shadow-sm hover:bg-blue-700 hover:shadow-md transition-all flex items-center justify-center gap-2"
+                >
+                  <Edit2 className="w-4 h-4" />
+                  Edit Listing
+                </button>
+                <button
+                  onClick={() => setDeletingListingId(selectedListing.id)}
+                  className="flex-1 bg-white text-red-600 border border-red-200 px-6 py-3 rounded-xl font-semibold hover:bg-red-50 hover:border-red-300 transition-all flex items-center justify-center gap-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete Listing
+                </button>
+              </div>
+            )}
+
+            <div className="border-t border-gray-100 pt-6 mb-6">
+              <h2 className="text-sm font-bold text-gray-900 mb-2">Description</h2>
+              <p className="text-base text-gray-600 whitespace-pre-wrap leading-relaxed">
+                {selectedListing.description}
+              </p>
+            </div>
+
+            {(selectedListing.pickup_location ||
+              (selectedListing.latitude && selectedListing.longitude)) && (
+              <div className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                <h2 className="text-sm font-bold text-gray-900 mb-2">Location</h2>
+                {selectedListing.pickup_location && (
+                  <div className="flex items-start gap-2 text-gray-700 mb-2">
+                    <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-500" />
+                    <span className="font-medium text-sm">
+                      {selectedListing.pickup_location}
+                    </span>
+                  </div>
+                )}
+                {selectedListing.latitude && selectedListing.longitude && (
+                  <a
+                    href={`https://www.openstreetmap.org/?mlat=${selectedListing.latitude}&mlon=${selectedListing.longitude}#map=13/${selectedListing.latitude}/${selectedListing.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-700 underline font-semibold text-sm"
+                  >
+                    View on map
+                  </a>
+                )}
+              </div>
+            )}
+
+            {selectedListing.picker?.profile && profile?.user_type !== "picker" && (
+              <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                <h2 className="text-sm font-bold text-gray-900 mb-3">Picker Information</h2>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    {selectedListing.picker.profile.avatar_url ? (
+                      <img
+                        src={selectedListing.picker.profile.avatar_url}
+                        alt={selectedListing.picker.profile.full_name || "Picker"}
+                        className="w-10 h-10 rounded-full object-cover ring-1 ring-gray-200 flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-orange-400 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                        {selectedListing.picker.profile.full_name
+                          ?.charAt(0)
+                          .toUpperCase() || "?"}
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-gray-900 font-bold text-sm">
+                        {selectedListing.picker.profile.full_name}
+                        {selectedListing.picker.verified && (
+                          <span className="text-green-600 ml-1.5 font-bold text-xs">
+                            ✓ Verified
+                          </span>
+                        )}
+                      </p>
+                      {selectedListing.picker.rating > 0 && (
+                        <p className="text-gray-500 mt-0.5 text-xs">
+                          ⭐{" "}
+                          <span className="font-semibold text-gray-700">
+                            {selectedListing.picker.rating.toFixed(1)}
+                          </span>{" "}
+                          ({selectedListing.picker.total_reviews} reviews)
+                        </p>
+                      )}
+                      {selectedListing.picker.current_location && (
+                        <p className="text-gray-500 mt-0.5 text-xs flex items-center gap-1">
+                          <MapPin className="w-3 h-3" />
+                          {selectedListing.picker.current_location}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  {profile?.user_type === "client" && (
+                    <FollowButton pickerId={selectedListing.picker.user_id} />
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {moreListings.length > 0 && (
+          <div>
+            <h2 className="text-lg font-bold text-gray-900 tracking-tight mb-4">
+              More Listings
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {moreListings.map((listing) => (
+                <button
+                  key={listing.id}
+                  onClick={() => {
+                    if (listing.picker_id) {
+                      trackPickerView(listing.picker_id, "listing", listing.id);
+                    }
+                    setSelectedListing(listing);
+                    scrollContentToTop();
+                  }}
+                  className="text-left bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 overflow-hidden"
+                >
+                  {listing.images && listing.images.length > 0 ? (
+                    <img
+                      src={listing.images[0]}
+                      alt={listing.title}
+                      className="w-full h-28 object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-28 bg-gray-50 flex items-center justify-center">
+                      <Package className="w-6 h-6 text-gray-300" />
+                    </div>
+                  )}
+                  <div className="p-3">
+                    <h3 className="text-sm font-semibold text-gray-900 truncate">
+                      {listing.title}
+                    </h3>
+                    <p className="text-xs text-gray-500 truncate mt-0.5">
+                      {listing.region}
+                    </p>
+                    <p className="text-sm font-bold text-gray-900 mt-1.5">
+                      €{listing.price.toFixed(2)}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {globalModals}
       </div>
     );
   }
@@ -1467,6 +2090,7 @@ export function ListingsView({
                   trackPickerView(listing.picker_id, "listing", listing.id);
                 }
                 setSelectedListing(listing);
+                scrollContentToTop();
               }}
             >
               <MediaGallery
@@ -1652,573 +2276,7 @@ export function ListingsView({
         )}
       </div>
 
-      {/* Listing Detail Modal */}
-      {selectedListing && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
-              <h2 className="text-2xl font-bold text-gray-900">
-                Listing Details
-              </h2>
-              <button
-                onClick={() => setSelectedListing(null)}
-                className="text-gray-500 hover:text-gray-700 transition-colors"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            <div className="p-6">
-              <MediaGallery
-                images={selectedListing.images}
-                videos={selectedListing.videos || []}
-                title={selectedListing.title}
-              />
-
-              <div className="mt-6">
-                <div className="flex items-start justify-between gap-3 mb-4">
-                  <h3 className="text-3xl font-bold text-gray-900 flex-1">
-                    {selectedListing.title}
-                  </h3>
-                  {selectedListing.images &&
-                    selectedListing.images.length > 0 && (
-                      <VerificationBadge
-                        storagePath={selectedListing.images[0]}
-                      />
-                    )}
-                </div>
-
-                <div className="flex flex-wrap gap-3 mb-6 text-sm">
-                  <div className="flex items-center gap-1 bg-gray-100 px-3 py-1.5 rounded-lg">
-                    <MapPin className="w-4 h-4 text-gray-600" />
-                    <span className="text-gray-700 font-medium">
-                      {selectedListing.region}
-                    </span>
-                  </div>
-                  {selectedListing.category && (
-                    <div className="flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-lg">
-                      <Tag className="w-4 h-4 text-blue-600" />
-                      <span className="text-blue-700 font-medium">
-                        {selectedListing.category}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="prose max-w-none mb-6">
-                  <h4 className="text-lg font-bold text-gray-900 mb-3">
-                    Description
-                  </h4>
-                  <p className="text-base text-gray-800 whitespace-pre-wrap leading-relaxed">
-                    {selectedListing.description}
-                  </p>
-                </div>
-
-                {(selectedListing.pickup_location ||
-                  (selectedListing.latitude && selectedListing.longitude)) && (
-                  <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <h4 className="text-lg font-bold text-gray-900 mb-3">
-                      Location
-                    </h4>
-                    {selectedListing.pickup_location && (
-                      <div className="flex items-start gap-2 text-gray-800 mb-2">
-                        <MapPin className="w-5 h-5 mt-0.5 flex-shrink-0 text-gray-600" />
-                        <span className="font-medium">
-                          {selectedListing.pickup_location}
-                        </span>
-                      </div>
-                    )}
-                    {selectedListing.latitude && selectedListing.longitude && (
-                      <a
-                        href={`https://www.openstreetmap.org/?mlat=${selectedListing.latitude}&mlon=${selectedListing.longitude}#map=13/${selectedListing.latitude}/${selectedListing.longitude}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-700 underline font-semibold text-base"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        View on map
-                      </a>
-                    )}
-                  </div>
-                )}
-
-                {selectedListing.media_links &&
-                  selectedListing.media_links.length > 0 && (
-                    <div className="mb-6">
-                      <h4 className="text-lg font-bold text-gray-900 mb-3">
-                        Media Links
-                      </h4>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedListing.media_links.map((link, index) => (
-                          <a
-                            key={index}
-                            href={link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-700 underline text-base font-medium"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            Media Link {index + 1}
-                          </a>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                {selectedListing.picker?.profile && (
-                  <div className="mb-6 pb-6 border-b-2 border-gray-200">
-                    <h4 className="text-lg font-bold text-gray-900 mb-3">
-                      Picker Information
-                    </h4>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <p className="text-gray-900 font-bold text-base">
-                          {selectedListing.picker.profile.full_name}
-                          {selectedListing.picker.verified && (
-                            <span className="text-green-600 ml-2 font-bold">
-                              ✓ Verified
-                            </span>
-                          )}
-                        </p>
-                        {selectedListing.picker.rating > 0 && (
-                          <p className="text-gray-700 mt-2 font-medium">
-                            ⭐{" "}
-                            <span className="font-bold">
-                              {selectedListing.picker.rating.toFixed(1)}
-                            </span>{" "}
-                            ({selectedListing.picker.total_reviews} reviews)
-                          </p>
-                        )}
-                        {selectedListing.picker.current_location && (
-                          <p className="text-gray-700 mt-2 font-medium">
-                            <MapPin className="w-4 h-4 inline mr-1" />
-                            {selectedListing.picker.current_location}
-                          </p>
-                        )}
-                      </div>
-                      {profile?.user_type === "client" && (
-                        <FollowButton
-                          pickerId={selectedListing.picker.user_id}
-                        />
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-xl p-6 mb-6 border-2 border-blue-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="text-xl font-bold text-gray-900">
-                        Item Price
-                      </h4>
-                      <p className="text-sm text-gray-800 mt-1 font-semibold">
-                        + delivery costs at checkout
-                      </p>
-                    </div>
-                    <div className="text-4xl font-bold text-gray-900">
-                      €{selectedListing.price.toFixed(2)}
-                    </div>
-                  </div>
-                </div>
-
-                {profile?.user_type === "client" && (
-                  <div className="flex gap-3">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleContactPicker(selectedListing);
-                        setSelectedListing(null);
-                      }}
-                      className="flex-1 bg-gray-100 text-gray-700 px-6 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
-                    >
-                      <MessageCircle className="w-5 h-5" />
-                      Message Picker
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleAddToCart(selectedListing);
-                      }}
-                      className="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
-                    >
-                      <ShoppingBag className="w-5 h-5" />
-                      Add to Cart
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setCheckoutListing(selectedListing);
-                        setSelectedListing(null);
-                      }}
-                      className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-                    >
-                      <ShoppingCart className="w-5 h-5" />
-                      Buy Now
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {checkoutListing && (
-        <OrderCheckoutModal
-          listing={checkoutListing}
-          onClose={() => setCheckoutListing(null)}
-          onOrderCreated={(order) => {
-            setCheckoutListing(null);
-            toast.success(
-              "Order placed and paid! The picker will ship your order soon. Check your Orders page to track progress.",
-              8000,
-            );
-            // Navigate to orders view if available
-            if (onViewChange) {
-              setTimeout(() => onViewChange("orders"), 1500);
-            }
-          }}
-        />
-      )}
-
-      {/* Edit Modal */}
-      {showEditModal && editingListing && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto animate-scale-in">
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
-              <h2 className="text-2xl font-bold text-gray-900">Edit Listing</h2>
-              <button
-                onClick={cancelEdit}
-                className="text-gray-500 hover:text-gray-700 transition-colors"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateListing} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Title <span className="text-red-600">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="e.g., Handcrafted Wooden Mask"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description <span className="text-red-600">*</span>
-                </label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={4}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Describe the item in detail..."
-                  required
-                />
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Region <span className="text-red-600">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={region}
-                    onChange={(e) => setRegion(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="e.g., Bali, Indonesia"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Category <span className="text-red-600">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="e.g., Traditional crafts"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Item Price (€) <span className="text-red-600">*</span>
-                </label>
-                <div className="relative">
-                  <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type="number"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="0.00"
-                    min="0"
-                    step="0.01"
-                    required
-                  />
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  Cost of the item/service only (delivery costs added at
-                  checkout)
-                </p>
-                {price && parseFloat(price) > 0 && (
-                  <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <p className="text-sm text-yellow-900 font-semibold mb-1">
-                      Platform Fee Notice: 10% will be deducted
-                    </p>
-                    <div className="text-xs text-yellow-800 space-y-1">
-                      <div className="flex justify-between">
-                        <span>Your listing price:</span>
-                        <span className="font-bold">
-                          €{parseFloat(price).toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Platform fee (10%):</span>
-                        <span className="font-bold text-red-700">
-                          -€{(parseFloat(price) * 0.1).toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between pt-1 border-t border-yellow-300">
-                        <span className="font-bold">You receive:</span>
-                        <span className="font-bold text-green-700">
-                          €{(parseFloat(price) * 0.9).toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Pickup Location (optional)
-                </label>
-                <input
-                  type="text"
-                  value={pickupLocation}
-                  onChange={(e) => setPickupLocation(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="e.g., Shibuya Station, Tokyo"
-                />
-              </div>
-
-              <LocationPicker
-                latitude={latitude}
-                longitude={longitude}
-                onLocationChange={(lat, lng) => {
-                  setLatitude(lat);
-                  setLongitude(lng);
-                }}
-                label="Item Pickup Location"
-              />
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <ImageIcon className="w-4 h-4 inline mr-1" />
-                  Upload Images
-                </label>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-blue-500 transition-colors">
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/jpg,image/png,image/webp"
-                    multiple
-                    onChange={handleImageUpload}
-                    className="hidden"
-                    id="edit-image-upload"
-                    disabled={uploading}
-                  />
-                  <label
-                    htmlFor="edit-image-upload"
-                    className="flex flex-col items-center justify-center cursor-pointer"
-                  >
-                    <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                    <span className="text-sm text-gray-600">
-                      Click to upload images
-                    </span>
-                  </label>
-                </div>
-
-                {uploadedImages.length > 0 && (
-                  <div className="grid grid-cols-3 gap-3 mt-3">
-                    {uploadedImages.map((url, index) => (
-                      <div key={index} className="relative group">
-                        <img
-                          src={url}
-                          alt={`Upload ${index + 1}`}
-                          className="w-full h-24 object-cover rounded-lg"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeImage(url)}
-                          className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {uploadError && (
-                <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
-                  {uploadError}
-                </div>
-              )}
-
-              {createError && (
-                <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
-                  {createError}
-                </div>
-              )}
-
-              <div className="flex gap-3">
-                <button
-                  type="submit"
-                  disabled={uploading || creating}
-                  className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
-                >
-                  {creating ? "Updating..." : "Update Listing"}
-                </button>
-                <button
-                  type="button"
-                  onClick={cancelEdit}
-                  className="px-6 py-3 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Dialog */}
-      <ConfirmDialog
-        isOpen={deletingListingId !== null}
-        title="Delete Listing"
-        message="Are you sure you want to delete this listing? This action cannot be undone."
-        confirmText="Delete"
-        cancelText="Cancel"
-        variant="danger"
-        onConfirm={() => {
-          if (deletingListingId) {
-            handleDeleteListing(deletingListingId);
-          }
-        }}
-        onCancel={() => setDeletingListingId(null)}
-      />
-
-      {/* Add to Collection Modal */}
-      {showAddToCollectionModal && selectedListingForCollection && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                <Heart className="w-6 h-6 text-pink-600" />
-                Add to Collection
-              </h3>
-              <button
-                onClick={() => {
-                  setShowAddToCollectionModal(false);
-                  setSelectedListingForCollection(null);
-                  setCollectionNotes("");
-                }}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-              <p className="text-sm font-medium text-gray-900">
-                {selectedListingForCollection.title}
-              </p>
-              <p className="text-xs text-gray-600 mt-1">
-                {selectedListingForCollection.region}
-              </p>
-            </div>
-
-            {collections.length === 0 ? (
-              <div className="text-center py-6">
-                <p className="text-gray-600 mb-4">
-                  You don't have any collections yet.
-                </p>
-                <button
-                  onClick={() => {
-                    setShowAddToCollectionModal(false);
-                    setSelectedListingForCollection(null);
-                    onViewChange?.("collections");
-                  }}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
-                >
-                  Create Your First Collection
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Collection
-                  </label>
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {collections.map((collection) => (
-                      <button
-                        key={collection.id}
-                        onClick={() => addToCollection(collection.id)}
-                        className="w-full text-left px-4 py-3 border-2 border-gray-200 rounded-lg hover:border-pink-500 hover:bg-pink-50 transition-colors"
-                      >
-                        <span className="font-medium text-gray-900">
-                          {collection.name}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Add Notes (Optional)
-                  </label>
-                  <textarea
-                    value={collectionNotes}
-                    onChange={(e) => setCollectionNotes(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                    rows={3}
-                    placeholder="Why do you want to save this item?"
-                  />
-                </div>
-
-                <button
-                  onClick={() => {
-                    setShowAddToCollectionModal(false);
-                    setSelectedListingForCollection(null);
-                    onViewChange?.("collections");
-                  }}
-                  className="w-full px-4 py-2 text-sm text-pink-600 hover:text-pink-700 font-medium"
-                >
-                  + Create New Collection
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+      {globalModals}
     </div>
   );
 }

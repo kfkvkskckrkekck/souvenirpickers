@@ -5,18 +5,22 @@ type MediaGalleryProps = {
   images: string[];
   videos: string[];
   title: string;
+  size?: 'compact' | 'large';
 };
 
-export function MediaGallery({ images, videos, title }: MediaGalleryProps) {
+export function MediaGallery({ images, videos, title, size = 'compact' }: MediaGalleryProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showLightbox, setShowLightbox] = useState(false);
 
   const allMedia = [...images, ...videos];
   const totalMedia = allMedia.length;
+  const isLarge = size === 'large';
+  const heightClass = isLarge ? 'h-80 sm:h-[420px] lg:h-[460px]' : 'h-48';
+  const roundingClass = isLarge ? 'rounded-2xl' : 'rounded-t-2xl';
 
   if (totalMedia === 0) {
     return (
-      <div className="w-full h-48 bg-gradient-to-br from-blue-50 via-white to-orange-50 flex items-center justify-center rounded-t-2xl">
+      <div className={`w-full ${heightClass} bg-gradient-to-br from-blue-50 via-white to-orange-50 flex items-center justify-center ${roundingClass}`}>
         <div className="text-center">
           <div className="w-14 h-14 mx-auto mb-2.5 rounded-2xl bg-white shadow-sm ring-1 ring-gray-100 flex items-center justify-center">
             <Package className="w-6 h-6 text-gray-300" strokeWidth={1.75} />
@@ -44,7 +48,7 @@ export function MediaGallery({ images, videos, title }: MediaGalleryProps) {
         {isVideo ? (
           <video
             src={currentMedia}
-            className="w-full h-48 object-cover rounded-t-2xl cursor-pointer"
+            className={`w-full ${heightClass} object-cover ${roundingClass} cursor-pointer`}
             onClick={() => setShowLightbox(true)}
             controls={false}
             playsInline
@@ -56,7 +60,7 @@ export function MediaGallery({ images, videos, title }: MediaGalleryProps) {
           <img
             src={currentMedia}
             alt={title}
-            className="w-full h-48 object-cover rounded-t-2xl cursor-pointer"
+            className={`w-full ${heightClass} object-cover ${roundingClass} cursor-pointer`}
             onClick={() => setShowLightbox(true)}
           />
         )}
@@ -94,6 +98,29 @@ export function MediaGallery({ images, videos, title }: MediaGalleryProps) {
           </div>
         )}
       </div>
+
+      {isLarge && totalMedia > 1 && (
+        <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
+          {allMedia.map((media, index) => {
+            const isThumbVideo = videos.includes(media);
+            return (
+              <button
+                key={index}
+                onClick={() => setCurrentIndex(index)}
+                className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden ring-2 transition-all ${
+                  index === currentIndex ? 'ring-blue-500' : 'ring-transparent hover:ring-gray-300'
+                }`}
+              >
+                {isThumbVideo ? (
+                  <video src={media} className="w-full h-full object-cover" muted />
+                ) : (
+                  <img src={media} alt="" className="w-full h-full object-cover" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {showLightbox && (
         <div
