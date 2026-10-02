@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { TrendingUp, Users, Star, Package, MessageCircle, Camera, Zap, CheckCircle, ArrowRight, Target, Award } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import SouvenirLoader from './SouvenirLoader';
 
 interface EngagementAction {
   id: string;
@@ -284,7 +285,7 @@ export default function EngagementRecommendations({ onViewChange }: EngagementRe
   if (loading) {
     return (
       <div className="bg-white rounded-2xl shadow-lg p-6">
-        <div className="text-gray-500">Loading recommendations...</div>
+        <SouvenirLoader message="Loading recommendations..." />
       </div>
     );
   }

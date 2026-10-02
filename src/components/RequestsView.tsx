@@ -3,6 +3,7 @@ import { Plus, MapPin, DollarSign, Clock, MessageCircle, Star, X } from 'lucide-
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, Request, Profile } from '../lib/supabase';
 import { ReviewForm } from './ReviewForm';
+import SouvenirLoader from './SouvenirLoader';
 
 export function RequestsView() {
   const { profile, user } = useAuth();
@@ -125,9 +126,7 @@ export function RequestsView() {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-gray-500">Loading requests...</div>
-        </div>
+        <SouvenirLoader message="Loading requests..." />
       </div>
     );
   }

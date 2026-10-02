@@ -6,6 +6,7 @@ import { StripePaymentForm } from './StripePaymentForm';
 import { supabase } from '../lib/supabase';
 import { X } from 'lucide-react';
 import { useNotification } from '../contexts/NotificationContext';
+import SouvenirLoader from './SouvenirLoader';
 
 type PaymentCard = {
   id: string;
@@ -163,9 +164,7 @@ export function SubscriptionView() {
   if (!profile || !subscriptionInfo) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-gray-500">Loading subscription details...</div>
-        </div>
+        <SouvenirLoader message="Loading subscription details..." />
       </div>
     );
   }
@@ -499,7 +498,7 @@ export function SubscriptionView() {
           </h3>
 
           {loadingCards ? (
-            <div className="text-center py-8 text-gray-500">Loading payment methods...</div>
+            <SouvenirLoader message="Loading payment methods..." />
           ) : paymentCards.length === 0 ? (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-4">
               <div className="flex items-start gap-3">

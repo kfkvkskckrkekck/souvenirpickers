@@ -6,6 +6,7 @@ import { getOrCreateConversation } from '../lib/conversations';
 import { CustomOrderModal } from './CustomOrderModal';
 import { requestNotificationPermission, isNotificationPermissionGranted, showMessageNotification } from '../lib/browserNotifications';
 import { notifyNewMessage } from '../lib/notifications';
+import SouvenirLoader from './SouvenirLoader';
 
 type ConversationWithProfiles = Conversation & {
   client?: Profile;
@@ -420,9 +421,7 @@ export function MessagesView({ initialPickerId }: MessagesViewProps) {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4" style={{ height: '90vh' }}>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-gray-500">Loading messages...</div>
-        </div>
+        <SouvenirLoader message="Loading messages..." />
       </div>
     );
   }

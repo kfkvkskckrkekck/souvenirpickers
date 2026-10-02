@@ -3,6 +3,7 @@ import { Gift, Users, TrendingUp, Copy, Check, Euro, Clock } from 'lucide-react'
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import SouvenirLoader from './SouvenirLoader';
 
 type ReferralStats = {
   code: string;
@@ -259,9 +260,7 @@ export function ReferralProgram() {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-gray-500">Loading...</div>
-        </div>
+        <SouvenirLoader message="Loading..." />
       </div>
     );
   }

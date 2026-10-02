@@ -2,6 +2,7 @@ import { useState, useEffect, type ReactNode } from 'react';
 import { Bell, Check, Trash2, ExternalLink, Package, DollarSign, Truck, ShieldCheck, CreditCard, BarChart2, ArrowRight } from 'lucide-react';
 import { supabase, Notification } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import SouvenirLoader from './SouvenirLoader';
 
 type NotificationsViewProps = {
   onViewChange?: (view: string, pickerId?: string, orderId?: string) => void;
@@ -259,9 +260,7 @@ export function NotificationsView({ onViewChange }: NotificationsViewProps) {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        </div>
+        <SouvenirLoader message="Loading notifications..." />
       </div>
     );
   }

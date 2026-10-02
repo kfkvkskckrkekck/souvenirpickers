@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Shield, AlertTriangle, Flag, Upload, CheckCircle, Clock, XCircle } from 'lucide-react';
+import SouvenirLoader from './SouvenirLoader';
 
 interface ContentReport {
   id: string;
@@ -189,9 +190,7 @@ export default function SafetyReportingView() {
   if (loading) {
     return (
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center justify-center py-12">
-          <Clock className="w-8 h-8 animate-spin text-blue-600" />
-        </div>
+        <SouvenirLoader message="Loading safety reports..." />
       </div>
     );
   }

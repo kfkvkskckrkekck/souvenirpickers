@@ -8,6 +8,7 @@ import { Header } from "./components/Header";
 import { Sidebar } from "./components/Sidebar";
 import { Footer } from "./components/Footer";
 import CookieBanner from "./components/CookieBanner";
+import SouvenirLoader from "./components/SouvenirLoader";
 
 const HomeView = lazy(() =>
   import("./components/HomeView").then((module) => ({
@@ -308,11 +309,13 @@ function AppContent() {
   if (isPasswordReset) {
     return (
       <Suspense
-        fallback={
-          <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-            <div className="text-gray-500">Loading reset form...</div>
-          </div>
-        }
+        // Old simple fallback — kept for easy revert:
+        // fallback={
+        //   <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        //     <div className="text-gray-500">Loading reset form...</div>
+        //   </div>
+        // }
+        fallback={<SouvenirLoader fullScreen message="Loading reset form..." />}
       >
         <ResetPasswordView />
       </Suspense>
@@ -320,16 +323,19 @@ function AppContent() {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-gray-500 text-lg mb-2">Loading...</div>
-          <div className="text-gray-400 text-sm">
-            Initializing SouvenirPickers
-          </div>
-        </div>
-      </div>
-    );
+    // Old simple loader — kept here so switching back is a one-line swap:
+    // just restore this return and remove the SouvenirLoader one below.
+    // return (
+    //   <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+    //     <div className="text-center">
+    //       <div className="text-gray-500 text-lg mb-2">Loading...</div>
+    //       <div className="text-gray-400 text-sm">
+    //         Initializing SouvenirPickers
+    //       </div>
+    //     </div>
+    //   </div>
+    // );
+    return <SouvenirLoader fullScreen message="Loading your next adventure..." />;
   }
 
   if (!user) {
@@ -337,14 +343,16 @@ function AppContent() {
   }
 
   if (!profile) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-gray-500 text-lg mb-2">Loading profile...</div>
-          <div className="text-gray-400 text-sm">Please wait</div>
-        </div>
-      </div>
-    );
+    // Old simple loader — kept for easy revert:
+    // return (
+    //   <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+    //     <div className="text-center">
+    //       <div className="text-gray-500 text-lg mb-2">Loading profile...</div>
+    //       <div className="text-gray-400 text-sm">Please wait</div>
+    //     </div>
+    //   </div>
+    // );
+    return <SouvenirLoader fullScreen message="Loading your profile..." />;
   }
 
   return (
@@ -373,14 +381,20 @@ function AppContent() {
           className="flex-1 min-w-0 flex flex-col overflow-y-auto [&>*:first-child]:w-full"
         >
           <Suspense
+            // Old simple fallback — kept for easy revert:
+            // fallback={
+            //   <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+            //     <div className="flex items-center justify-center min-h-[400px]">
+            //       <div className="text-center">
+            //         <div className="text-gray-500 text-lg mb-2">Loading...</div>
+            //         <div className="text-gray-400 text-sm">Please wait</div>
+            //       </div>
+            //     </div>
+            //   </div>
+            // }
             fallback={
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-                <div className="flex items-center justify-center min-h-[400px]">
-                  <div className="text-center">
-                    <div className="text-gray-500 text-lg mb-2">Loading...</div>
-                    <div className="text-gray-400 text-sm">Please wait</div>
-                  </div>
-                </div>
+              <div className="w-full flex items-center justify-center min-h-[400px]">
+                <SouvenirLoader message="Loading..." />
               </div>
             }
           >

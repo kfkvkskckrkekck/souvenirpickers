@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Camera, Heart, MessageCircle, Send, X, Plus, MapPin, Flame, ThumbsUp, Sparkles, Filter, ShoppingBag, Users, Share2, Facebook, Twitter, Check, Link as LinkIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import SouvenirLoader from './SouvenirLoader';
 
 interface Story {
   id: string;
@@ -384,9 +385,7 @@ export default function SocialFeedView() {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        </div>
+        <SouvenirLoader message="Loading social feed..." />
       </div>
     );
   }

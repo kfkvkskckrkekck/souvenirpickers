@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Check, Copy, MapPin, Package, Truck } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import SouvenirLoader from './SouvenirLoader';
 
 type OrderTrackingViewProps = { orderId: string | null };
 
@@ -71,7 +72,11 @@ export function OrderTrackingView({ orderId }: OrderTrackingViewProps) {
   };
 
   if (!orderId || error) return <div className="max-w-3xl mx-auto px-4 py-12 text-center text-gray-600">{error || 'Select an order to track.'}</div>;
-  if (!order) return <div className="max-w-3xl mx-auto px-4 py-12 text-center text-gray-600">Loading tracking details...</div>;
+  if (!order) return (
+    <div className="max-w-3xl mx-auto px-4 py-12">
+      <SouvenirLoader message="Loading tracking details..." />
+    </div>
+  );
 
   return (
     <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8">

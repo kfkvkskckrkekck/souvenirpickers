@@ -139,40 +139,159 @@
     <style>
       #loading-screen {
         position: fixed;
-        top: 0;
-        left: 0;
+        inset: 0;
         width: 100%;
         height: 100%;
-        background: white;
+        background: linear-gradient(135deg, #eff6ff 0%, #ffffff 55%, #fff7ed 100%);
         display: flex;
-        flex-direction: column;
         align-items: center;
         justify-content: center;
         z-index: 9999;
+        overflow: hidden;
       }
-      #loading-screen .spinner {
-        width: 50px;
-        height: 50px;
-        border: 4px solid #e5e7eb;
-        border-top-color: #2563eb;
+      #loading-screen .sl-glow {
+        position: absolute;
+        width: 160px;
+        height: 160px;
         border-radius: 50%;
-        animation: spin 1s linear infinite;
+        background: linear-gradient(90deg, #3b82f6, #fb923c, #22c55e);
+        opacity: 0.35;
+        filter: blur(26px);
+        animation: sl-glow 2.5s ease-in-out infinite;
       }
-      @keyframes spin {
-        to { transform: rotate(360deg); }
+      #loading-screen .sl-wrap {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        max-width: 220px;
+        padding: 0 16px;
       }
-      #loading-screen p {
-        margin-top: 20px;
-        color: #6b7280;
+      #loading-screen .sl-character {
+        position: relative;
+        width: 112px;
+        height: 112px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #loading-screen .sl-ring {
+        position: absolute;
+        inset: 6px;
+        border-radius: 50%;
+        padding: 3px;
+        background: conic-gradient(from 0deg, #1677ff 0deg, #1677ff 115deg, #ff7a00 180deg, #ff7a00 235deg, #20b95a 300deg, #20b95a 345deg, #1677ff 360deg);
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        animation: sl-spin 3.5s linear infinite;
+      }
+      #loading-screen .sl-ring-dashed {
+        position: absolute;
+        inset: 12px;
+        border-radius: 50%;
+        border: 1px dashed rgba(147, 197, 253, 0.6);
+        animation: sl-spin-reverse 5s linear infinite;
+      }
+      #loading-screen .sl-dot {
+        position: absolute;
+        border-radius: 50%;
+        animation: sl-float 2.4s ease-in-out infinite;
+      }
+      #loading-screen .sl-dot-a { left: 6%; top: 30%; width: 6px; height: 6px; background: #f97316; }
+      #loading-screen .sl-dot-b { right: 7%; top: 40%; width: 8px; height: 8px; background: #22c55e; animation-delay: 0.5s; }
+      #loading-screen .sl-dot-c { bottom: 19%; left: 14%; width: 6px; height: 6px; background: #3b82f6; animation-delay: 1s; }
+      #loading-screen .sl-img {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        filter: drop-shadow(0 12px 20px rgba(30, 80, 130, 0.18));
+      }
+      #loading-screen .sl-text {
+        margin-top: 10px;
+        text-align: center;
+      }
+      #loading-screen .sl-text h2 {
+        margin: 0;
         font-family: system-ui, -apple-system, sans-serif;
-        font-size: 16px;
+        font-size: 15px;
+        font-weight: 800;
+        color: #0f172a;
+      }
+      #loading-screen .sl-gradient-text {
+        background: linear-gradient(90deg, #2563eb, #f97316, #22c55e);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      #loading-screen .sl-text p {
+        margin: 6px 0 0;
+        font-family: system-ui, -apple-system, sans-serif;
+        font-size: 12px;
+        color: #64748b;
+      }
+      #loading-screen .sl-dots-row {
+        margin-top: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
+      #loading-screen .sl-bounce {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        animation: sl-bounce 1.2s ease-in-out infinite;
+      }
+      @keyframes sl-spin { to { transform: rotate(360deg); } }
+      @keyframes sl-spin-reverse { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
+      @keyframes sl-glow {
+        0%, 100% { opacity: 0.35; filter: blur(20px); }
+        50% { opacity: 0.6; filter: blur(30px); }
+      }
+      @keyframes sl-float {
+        0%, 100% { transform: translateY(0) scale(1); }
+        50% { transform: translateY(-5px) scale(1.04); }
+      }
+      @keyframes sl-bounce {
+        0%, 100% { transform: translateY(0); opacity: 0.35; }
+        50% { transform: translateY(-5px); opacity: 1; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #loading-screen .sl-ring,
+        #loading-screen .sl-ring-dashed,
+        #loading-screen .sl-glow,
+        #loading-screen .sl-dot,
+        #loading-screen .sl-bounce {
+          animation: none !important;
+        }
       }
     </style>
   </head>
   <body>
     <div id="loading-screen">
-      <div class="spinner"></div>
-      <p>Loading SouvenirPickers...</p>
+      <div class="sl-glow"></div>
+      <div class="sl-wrap">
+        <div class="sl-character">
+          <div class="sl-ring"></div>
+          <div class="sl-ring-dashed"></div>
+          <span class="sl-dot sl-dot-a"></span>
+          <span class="sl-dot sl-dot-b"></span>
+          <span class="sl-dot sl-dot-c"></span>
+          <img src="/loader/loading-character.png" alt="Souvenir Picker" class="sl-img" draggable="false" />
+        </div>
+        <div class="sl-text">
+          <h2>Loading your next <span class="sl-gradient-text">adventure</span>...</h2>
+          <p>Authentic souvenirs. Real stories.</p>
+          <div class="sl-dots-row">
+            <span class="sl-bounce" style="background:#2563eb"></span>
+            <span class="sl-bounce" style="background:#f97316; animation-delay:0.2s"></span>
+            <span class="sl-bounce" style="background:#22c55e; animation-delay:0.4s"></span>
+          </div>
+        </div>
+      </div>
     </div>
     <div id="root"></div>
     <script>

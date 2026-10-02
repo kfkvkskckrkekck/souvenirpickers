@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Star, User, ThumbsUp, ThumbsDown, CheckCircle, Image as ImageIcon, Video as VideoIcon } from 'lucide-react';
 import { supabase, Review, Profile } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import SouvenirLoader from './SouvenirLoader';
 
 type ReviewWithProfile = Review & {
   client?: Profile;
@@ -106,8 +107,8 @@ export function ReviewsList({ pickerId }: ReviewsListProps) {
 
   if (loading) {
     return (
-      <div className="text-center py-8 text-gray-500">
-        Loading reviews...
+      <div className="py-4">
+        <SouvenirLoader message="Loading reviews..." />
       </div>
     );
   }

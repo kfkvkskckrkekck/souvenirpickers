@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { CreditCard, Loader, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import SouvenirLoader from './SouvenirLoader';
 
 declare global {
   interface Window {
@@ -221,12 +222,7 @@ export function StripePaymentForm({ onSuccess, onCancel }: StripePaymentFormProp
 
   return (
     <div className="w-full">
-      {loading && (
-        <div className="text-center py-12">
-          <Loader className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading payment form...</p>
-        </div>
-      )}
+      {loading && <SouvenirLoader message="Loading payment form..." />}
 
       <form onSubmit={handleSubmit} style={{ display: loading ? 'none' : 'block' }}>
         <div className="mb-4">

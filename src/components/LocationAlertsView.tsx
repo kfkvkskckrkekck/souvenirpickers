@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Bell, Plus, MapPin, Trash2, ToggleLeft, ToggleRight, Loader, AlertCircle, Info } from 'lucide-react';
+import { Bell, Plus, MapPin, Trash2, ToggleLeft, ToggleRight, AlertCircle, Info } from 'lucide-react';
+import SouvenirLoader from './SouvenirLoader';
 
 interface LocationAlert {
   id: string;
@@ -119,9 +120,7 @@ export default function LocationAlertsView() {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center justify-center py-12">
-          <Loader className="w-8 h-8 animate-spin text-green-600" />
-        </div>
+        <SouvenirLoader message="Loading location alerts..." />
       </div>
     );
   }

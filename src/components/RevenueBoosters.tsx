@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { TrendingUp, DollarSign, Zap, AlertCircle, CheckCircle, XCircle, ArrowRight, Sparkles } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import SouvenirLoader from './SouvenirLoader';
 
 type RevenueInsight = {
   id: string;
@@ -134,17 +135,11 @@ export function RevenueBoosters({ onViewChange, compact = false }: RevenueBooter
 
   if (loading) {
     if (compact) {
-      return (
-        <div className="flex items-center justify-center p-8">
-          <div className="text-gray-500">Loading revenue insights...</div>
-        </div>
-      );
+      return <SouvenirLoader message="Loading revenue insights..." />;
     }
     return (
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center justify-center p-8">
-          <div className="text-gray-500">Loading revenue insights...</div>
-        </div>
+        <SouvenirLoader message="Loading revenue insights..." />
       </div>
     );
   }

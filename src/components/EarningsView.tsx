@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { DollarSign, TrendingUp, Clock, Loader, Calendar, Download, Info, Shield, Zap } from 'lucide-react';
+import { DollarSign, TrendingUp, Clock, Calendar, Download, Info, Shield, Zap } from 'lucide-react';
 import { PayoutSetup } from './PayoutSetup';
+import SouvenirLoader from './SouvenirLoader';
 
 export default function EarningsView() {
   const { user } = useAuth();
@@ -133,9 +134,7 @@ export default function EarningsView() {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center justify-center py-12">
-          <Loader className="w-8 h-8 animate-spin text-green-600" />
-        </div>
+        <SouvenirLoader message="Loading earnings..." />
       </div>
     );
   }

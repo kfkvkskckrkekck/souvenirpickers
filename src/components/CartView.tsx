@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase, CartItem, Listing } from '../lib/supabase';
 import { COUNTRIES, toCountryCode } from '../lib/countries';
 import { CartMultiOrderPayment } from './CartMultiOrderPayment';
+import SouvenirLoader from './SouvenirLoader';
 
 type CartItemWithListing = CartItem & {
   listing: Listing;
@@ -320,9 +321,7 @@ export function CartView({ onViewChange }: CartViewProps = {}) {
   if (loading) {
     return (
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-gray-500">Loading cart...</div>
-        </div>
+        <SouvenirLoader message="Loading cart..." />
       </div>
     );
   }

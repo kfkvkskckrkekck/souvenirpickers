@@ -3,6 +3,7 @@ import { Bell, Mail, Smartphone, MessageSquare, Save } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { supabase } from '../lib/supabase';
+import SouvenirLoader from './SouvenirLoader';
 
 type NotificationPreferences = {
   email_new_message: boolean;
@@ -121,9 +122,7 @@ export function NotificationSettings() {
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto p-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-gray-500">Loading preferences...</div>
-        </div>
+        <SouvenirLoader message="Loading preferences..." />
       </div>
     );
   }

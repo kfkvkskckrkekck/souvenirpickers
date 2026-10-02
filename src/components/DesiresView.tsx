@@ -6,6 +6,7 @@ import { supabase, ClientDesire, Profile } from '../lib/supabase';
 import { LocationPicker } from './LocationPicker';
 import { uploadVideo } from '../lib/storage';
 import { ConfirmDialog } from './ConfirmDialog';
+import SouvenirLoader from './SouvenirLoader';
 
 type DesireWithClient = ClientDesire & {
   client?: Profile;
@@ -338,9 +339,7 @@ export function DesiresView({ onViewChange }: DesiresViewProps = {}) {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-gray-500">Loading desires...</div>
-        </div>
+        <SouvenirLoader message="Loading desires..." />
       </div>
     );
   }

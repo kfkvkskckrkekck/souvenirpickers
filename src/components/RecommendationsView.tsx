@@ -4,6 +4,7 @@ import { supabase, Listing, PickerProfile, Profile } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { MediaGallery } from './MediaGallery';
 import EngagementRecommendations from './EngagementRecommendations';
+import SouvenirLoader from './SouvenirLoader';
 
 type ListingWithPicker = Listing & {
   picker?: PickerProfile & { profile?: Profile };
@@ -214,9 +215,7 @@ export function RecommendationsView({ onViewChange }: RecommendationsViewProps) 
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-gray-500">Loading recommendations...</div>
-        </div>
+        <SouvenirLoader message="Loading recommendations..." />
       </div>
     );
   }

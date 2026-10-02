@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { addToWishlist, removeFromWishlist, isInWishlist } from '../lib/wishlist';
 import { recordListingView } from '../lib/search';
 import { useAuth } from '../contexts/AuthContext';
+import SouvenirLoader from './SouvenirLoader';
 
 type DiscoverViewProps = {
   onViewChange: (view: string, listingId?: string) => void;
@@ -336,9 +337,7 @@ export function DiscoverView({ onViewChange }: DiscoverViewProps) {
         </div>
 
         {loading ? (
-          <div className="flex justify-center items-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          </div>
+          <SouvenirLoader message="Loading discoveries..." />
         ) : listings.length === 0 ? (
           <div className="text-center py-20 px-4">
             <Search className="w-16 h-16 text-gray-400 mx-auto mb-4" />

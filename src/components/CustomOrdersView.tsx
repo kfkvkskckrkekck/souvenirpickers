@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Package, DollarSign, Clock, CheckCircle, XCircle, Truck as TruckIcon, MessageCircle, Info } from 'lucide-react';
 import { supabase, Profile, CollectorPaymentMethod } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import SouvenirLoader from './SouvenirLoader';
 
 type CustomOrder = {
   id: string;
@@ -219,9 +220,7 @@ export function CustomOrdersView() {
   if (loading) {
     return (
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-gray-500">Loading custom orders...</div>
-        </div>
+        <SouvenirLoader message="Loading custom orders..." />
       </div>
     );
   }

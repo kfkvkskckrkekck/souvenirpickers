@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Heart, MapPin, Star, Trash2, ShoppingCart, MessageCircle } from 'lucide-react';
 import { getWishlist, removeFromWishlist, updateWishlistNotes } from '../lib/wishlist';
 import { useAuth } from '../contexts/AuthContext';
+import SouvenirLoader from './SouvenirLoader';
 
 type WishlistViewProps = {
   onViewChange: (view: string, listingId?: string) => void;
@@ -64,7 +65,7 @@ export function WishlistView({ onViewChange }: WishlistViewProps) {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex justify-center items-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <SouvenirLoader message="Loading wishlist..." />
       </div>
     );
   }

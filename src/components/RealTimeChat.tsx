@@ -7,6 +7,7 @@ import { getOrCreateConversation } from '../lib/conversations';
 import { uploadImage } from '../lib/storage';
 import { showMessageNotification, requestNotificationPermission } from '../lib/browserNotifications';
 import { CustomOrderModal } from './CustomOrderModal';
+import SouvenirLoader from './SouvenirLoader';
 
 type ConversationWithProfiles = Conversation & {
   client?: Profile;
@@ -505,7 +506,7 @@ export function RealTimeChat({ initialPickerId }: RealTimeChatProps = {}) {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <Loader className="w-8 h-8 animate-spin text-blue-600" />
+        <SouvenirLoader message="Loading messages..." />
       </div>
     );
   }

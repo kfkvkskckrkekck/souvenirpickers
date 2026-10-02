@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { CheckCircle, AlertCircle, Loader, ExternalLink, DollarSign } from 'lucide-react';
+import SouvenirLoader from './SouvenirLoader';
 
 type AccountStatus = 'loading' | 'not_created' | 'pending' | 'verified';
 
@@ -142,10 +143,7 @@ export function PayoutSetup() {
   if (status === 'loading') {
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-        <div className="flex items-center justify-center">
-          <Loader className="w-8 h-8 animate-spin text-blue-600" />
-          <span className="ml-3 text-gray-600">Checking account status...</span>
-        </div>
+        <SouvenirLoader message="Checking account status..." />
       </div>
     );
   }

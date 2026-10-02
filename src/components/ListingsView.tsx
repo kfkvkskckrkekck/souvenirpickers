@@ -33,6 +33,7 @@ import { VerificationBadge } from "./VerificationBadge";
 import { ConfirmDialog } from "./ConfirmDialog";
 import ProfileCompletionBanner from "./ProfileCompletionBanner";
 import { trackPickerView } from "../lib/viewTracking";
+import SouvenirLoader from "./SouvenirLoader";
 
 type SortOption = "newest" | "price_low" | "price_high" | "distance";
 
@@ -1212,9 +1213,7 @@ export function ListingsView({
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-gray-500">Loading listings...</div>
-        </div>
+        <SouvenirLoader message="Loading listings..." />
       </div>
     );
   }

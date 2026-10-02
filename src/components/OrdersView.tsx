@@ -9,6 +9,7 @@ import { uploadPickupVideo } from '../lib/storage';
 import OrderConfirmation from './OrderConfirmation';
 import { CartPaymentModal } from './CartPaymentModal';
 import { getStatusDisplay, getStatusColor, getAvailableActions, getFilterOptions, requiresCollectorAction, requiresPickerAction, type OrderStatus } from '../lib/orderStatus';
+import SouvenirLoader from './SouvenirLoader';
 
 type EscrowRecord = {
   id: string;
@@ -399,9 +400,7 @@ export function OrdersView({ onViewChange, initialOrderId }: OrdersViewProps = {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-gray-500">Loading orders...</div>
-        </div>
+        <SouvenirLoader message="Loading orders..." />
       </div>
     );
   }
