@@ -11,6 +11,13 @@ import {
   Sparkles,
   Award,
   Shield,
+  UserPlus,
+  Search,
+  CreditCard,
+  PackageCheck,
+  Check,
+  Zap,
+  Headphones,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import ProfileCompletionBanner from "./ProfileCompletionBanner";
@@ -18,6 +25,42 @@ import ProfileCompletionBanner from "./ProfileCompletionBanner";
 type HomeViewProps = {
   onViewChange: (view: string) => void;
 };
+
+const PROCESS_STEPS = [
+  {
+    number: "01",
+    icon: UserPlus,
+    title: "Create Your Account",
+    description: "Sign up as a collector or picker in just a few minutes",
+    buttonLabel: "Get Started",
+    view: "profile",
+  },
+  {
+    number: "02",
+    icon: Search,
+    title: "Explore & Connect",
+    description: "Browse unique listings or showcase your own souvenirs",
+    buttonLabel: "Explore Now",
+    view: "listings",
+  },
+  {
+    number: "03",
+    icon: CreditCard,
+    title: "Buy or Sell Securely",
+    description:
+      "Automatic shipping rates at checkout, instant payouts via Stripe",
+    buttonLabel: "See How",
+    view: "listings",
+  },
+  {
+    number: "04",
+    icon: PackageCheck,
+    title: "Track Your Orders",
+    description: "Follow every order in real time from purchase to delivery",
+    buttonLabel: "View Orders",
+    view: "orders",
+  },
+] as const;
 
 export function HomeView({ onViewChange }: HomeViewProps) {
   const { profile } = useAuth();
@@ -324,53 +367,178 @@ export function HomeView({ onViewChange }: HomeViewProps) {
           </div>
         )}
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-12 sm:mb-16 lg:mb-20">
-          <div className="group bg-white p-5 sm:p-6 lg:p-8 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg sm:rounded-xl flex items-center justify-center mb-3 sm:mb-4 lg:mb-5 shadow-lg group-hover:scale-110 transition-transform">
-              <MapPin className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 text-white" />
+        <div className="bg-gradient-to-br from-orange-50 to-amber-50/60 rounded-2xl sm:rounded-3xl p-4 sm:p-5 lg:p-6 mb-12 sm:mb-16 lg:mb-20">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="bg-white p-4 sm:p-5 rounded-xl sm:rounded-2xl shadow-sm border border-gray-100">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 bg-gradient-to-br from-orange-400 to-orange-500 rounded-xl flex items-center justify-center mb-3 sm:mb-4 shadow-sm">
+                <Globe className="w-5 h-5 text-white" strokeWidth={2} />
+              </div>
+              <h3 className="text-sm sm:text-base font-bold text-gray-900 mb-1.5">
+                Global Network
+              </h3>
+              <p className="text-gray-500 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4">
+                Access pickers in 150+ countries worldwide
+              </p>
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-orange-100 flex items-center justify-center">
+                <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-orange-600" strokeWidth={2.5} />
+              </div>
             </div>
-            <h3 className="text-base sm:text-lg lg:text-xl font-bold text-gray-900 mb-2 sm:mb-3">
-              Global Network
-            </h3>
-            <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
-              Access pickers in 150+ countries worldwide
-            </p>
+
+            <div className="bg-white p-4 sm:p-5 rounded-xl sm:rounded-2xl shadow-sm border border-gray-100">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 bg-gradient-to-br from-amber-400 to-amber-500 rounded-xl flex items-center justify-center mb-3 sm:mb-4 shadow-sm">
+                <Shield className="w-5 h-5 text-white" strokeWidth={2} />
+              </div>
+              <h3 className="text-sm sm:text-base font-bold text-gray-900 mb-1.5">
+                Secure Payments
+              </h3>
+              <p className="text-gray-500 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4">
+                Protected transactions with escrow system
+              </p>
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-amber-100 flex items-center justify-center">
+                <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600" strokeWidth={2.5} />
+              </div>
+            </div>
+
+            <div className="bg-white p-4 sm:p-5 rounded-xl sm:rounded-2xl shadow-sm border border-gray-100">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 bg-gradient-to-br from-green-400 to-green-500 rounded-xl flex items-center justify-center mb-3 sm:mb-4 shadow-sm">
+                <Award className="w-5 h-5 text-white" strokeWidth={2} />
+              </div>
+              <h3 className="text-sm sm:text-base font-bold text-gray-900 mb-1.5">
+                Verified Pickers
+              </h3>
+              <p className="text-gray-500 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4">
+                Trusted experts with proven track records
+              </p>
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-green-100 flex items-center justify-center">
+                <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-600" strokeWidth={2.5} />
+              </div>
+            </div>
+
+            <div className="bg-white p-4 sm:p-5 rounded-xl sm:rounded-2xl shadow-sm border border-gray-100">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 bg-gradient-to-br from-orange-400 to-orange-500 rounded-xl flex items-center justify-center mb-3 sm:mb-4 shadow-sm">
+                <Sparkles className="w-5 h-5 text-white" strokeWidth={2} />
+              </div>
+              <h3 className="text-sm sm:text-base font-bold text-gray-900 mb-1.5">
+                Authentic Items
+              </h3>
+              <p className="text-gray-500 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4">
+                Genuine souvenirs with quality guarantee
+              </p>
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-orange-100 flex items-center justify-center">
+                <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-orange-600" strokeWidth={2.5} />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-12 sm:mb-16 lg:mb-20">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8 sm:mb-10">
+            <div>
+              <span className="inline-block bg-orange-500 text-white text-xs font-bold px-3 py-1.5 rounded-full mb-3">
+                Your Journey
+              </span>
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-gray-900 mb-2">
+                Step-by-Step Process
+              </h2>
+              <p className="text-gray-500 text-sm sm:text-base max-w-xl">
+                From sign up to your first order — we make it simple, fast
+                and secure.
+              </p>
+            </div>
+            <div className="hidden sm:flex items-center gap-2 text-orange-500 font-medium italic text-sm whitespace-nowrap">
+              <span>Start your journey</span>
+              <ArrowRight className="w-5 h-5" />
+            </div>
           </div>
 
-          <div className="group bg-white p-5 sm:p-6 lg:p-8 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg sm:rounded-xl flex items-center justify-center mb-3 sm:mb-4 lg:mb-5 shadow-lg group-hover:scale-110 transition-transform">
-              <Shield className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 text-white" />
-            </div>
-            <h3 className="text-base sm:text-lg lg:text-xl font-bold text-gray-900 mb-2 sm:mb-3">
-              Secure Payments
-            </h3>
-            <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
-              Protected transactions with escrow system
-            </p>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            {PROCESS_STEPS.map((step, index) => {
+              const Icon = step.icon;
+              const isLast = index === PROCESS_STEPS.length - 1;
+              return (
+                <div key={step.number} className="relative">
+                  <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-gray-100 h-full flex flex-col">
+                    <div className="relative w-14 h-14 sm:w-16 sm:h-16 mb-5 sm:mb-6">
+                      <div className="w-full h-full rounded-2xl bg-blue-50 flex items-center justify-center">
+                        <Icon
+                          className="w-7 h-7 sm:w-8 sm:h-8 text-blue-600"
+                          strokeWidth={1.75}
+                        />
+                      </div>
+                      <div className="absolute -top-2 -left-2 w-8 h-8 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center text-xs font-bold text-gray-700">
+                        {step.number}
+                      </div>
+                      <div className="absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-full bg-green-500 flex items-center justify-center shadow-sm">
+                        <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+                      </div>
+                    </div>
+                    <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2">
+                      {step.title}
+                    </h3>
+                    <p className="text-gray-500 text-xs sm:text-sm leading-relaxed mb-4 sm:mb-5 flex-1">
+                      {step.description}
+                    </p>
+                    <button
+                      onClick={() => onViewChange(step.view)}
+                      className={`inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors mt-auto ${
+                        isLast
+                          ? "bg-orange-500 text-white hover:bg-orange-600"
+                          : "bg-orange-50 text-orange-600 hover:bg-orange-100"
+                      }`}
+                    >
+                      {step.buttonLabel}
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                  {!isLast && (
+                    <div className="hidden lg:flex absolute top-1/2 -right-4 -translate-y-1/2 z-10 items-center justify-center">
+                      <ArrowRight className="w-5 h-5 text-orange-300" strokeWidth={2.5} />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
-          <div className="group bg-white p-5 sm:p-6 lg:p-8 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-lg sm:rounded-xl flex items-center justify-center mb-3 sm:mb-4 lg:mb-5 shadow-lg group-hover:scale-110 transition-transform">
-              <Award className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 text-white" />
+          <div className="mt-8 sm:mt-10 bg-gradient-to-r from-orange-50 to-amber-50/60 rounded-2xl p-5 sm:p-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+            <div className="flex items-center gap-4">
+              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-orange-500 flex items-center justify-center shadow-sm flex-shrink-0">
+                <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-base sm:text-lg font-bold text-gray-900">
+                  Ready to get started?
+                </h3>
+                <p className="text-gray-500 text-xs sm:text-sm">
+                  Join thousands of collectors and pickers already using
+                  SouvenirPickers
+                </p>
+              </div>
             </div>
-            <h3 className="text-base sm:text-lg lg:text-xl font-bold text-gray-900 mb-2 sm:mb-3">
-              Verified Pickers
-            </h3>
-            <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
-              Trusted experts with proven track records
-            </p>
-          </div>
 
-          <div className="group bg-white p-5 sm:p-6 lg:p-8 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 bg-gradient-to-br from-amber-500 to-yellow-600 rounded-lg sm:rounded-xl flex items-center justify-center mb-3 sm:mb-4 lg:mb-5 shadow-lg group-hover:scale-110 transition-transform">
-              <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 text-white" />
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+              <button
+                onClick={() => onViewChange("listings")}
+                className="bg-orange-500 text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-orange-600 transition-colors shadow-sm flex items-center justify-center gap-2 whitespace-nowrap"
+              >
+                Get Started Now
+                <ArrowRight className="w-4 h-4" />
+              </button>
+              <div className="flex items-center gap-4 text-xs sm:text-sm text-gray-500 font-medium">
+                <span className="flex items-center gap-1.5 whitespace-nowrap">
+                  <Shield className="w-4 h-4 text-orange-500" />
+                  Secure
+                </span>
+                <span className="flex items-center gap-1.5 whitespace-nowrap">
+                  <Zap className="w-4 h-4 text-orange-500" />
+                  Fast Setup
+                </span>
+                <span className="flex items-center gap-1.5 whitespace-nowrap">
+                  <Headphones className="w-4 h-4 text-orange-500" />
+                  24/7 Support
+                </span>
+              </div>
             </div>
-            <h3 className="text-base sm:text-lg lg:text-xl font-bold text-gray-900 mb-2 sm:mb-3">
-              Authentic Items
-            </h3>
-            <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
-              Genuine souvenirs with quality guarantee
-            </p>
           </div>
         </div>
 
