@@ -15,8 +15,13 @@ export type OrderStatus =
 
 export type UserType = 'collector' | 'client' | 'picker';
 
-export function getStatusDisplay(status: OrderStatus, userType: UserType, _paymentStatus?: string): string {
+export function getStatusDisplay(status: OrderStatus, userType: UserType, paymentStatus?: string): string {
   const isCollector = userType === 'collector' || userType === 'client';
+
+  // An order whose payment hasn't gone through isn't a placed order yet.
+  if ((status === 'pending' || status === 'unpaid') && paymentStatus === 'pending') {
+    return 'Awaiting Payment';
+  }
 
   if (isCollector) {
     switch (status) {

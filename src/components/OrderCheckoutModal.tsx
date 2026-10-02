@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { X, Package, DollarSign, MapPin, Gift } from 'lucide-react';
 import { FunctionsHttpError } from '@supabase/supabase-js';
 import { supabase, Listing, Profile, Order } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { StripeCheckoutForm } from './StripeCheckoutForm';
 import { COUNTRIES, toCountryCode } from '../lib/countries';
+import { useUnpaidOrderGuard } from '../lib/orderDrafts';
 
 type ShippingRate = {
   id: number;
@@ -23,6 +24,7 @@ type OrderCheckoutModalProps = {
 
 export function OrderCheckoutModal({ listing, onClose, onOrderCreated }: OrderCheckoutModalProps) {
   const { profile, user } = useAuth();
+  const guard = useUnpaidOrderGuard(user?.id);
   const [quantity, setQuantity] = useState(1);
 
   // Structured delivery address fields
@@ -53,7 +55,9 @@ export function OrderCheckoutModal({ listing, onClose, onOrderCreated }: OrderCh
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [showPayment, setShowPayment] = useState(false);
-  const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
+  // The order is only inserted when the buyer presses Pay: this holds the data
+  // snapshotted at "Continue to Payment".
+  const orderPayloadRef = useRef<Record<string, unknown> | null>(null);
   const [shippingRates, setShippingRates] = useState<ShippingRate[]>([]);
   const [selectedShippingRate, setSelectedShippingRate] = useState<ShippingRate | null>(null);
   const [loadingRates, setLoadingRates] = useState(false);
@@ -148,76 +152,99 @@ export function OrderCheckoutModal({ listing, onClose, onOrderCreated }: OrderCh
       if (pickerError) throw pickerError;
       if (!pickerProfile) throw new Error('Picker not found');
 
-      const { data, error: insertError } = await supabase
-        .from('orders')
-        .insert({
-          client_id: user.id,
-          picker_id: pickerProfile.user_id,
-          listing_id: listing.id,
-          quantity,
-          total_price: totalPrice,
-          shipping_cost: shippingTotal,
-          shipping_carrier: selectedShippingRate.carrier,
-          shipping_service: selectedShippingRate.name,
-          estimated_delivery_days: selectedShippingRate.max_days > 0
-            ? `${selectedShippingRate.min_days}-${selectedShippingRate.max_days} business days`
-            : null,
-          delivery_address: isGift ? giftRecipientAddressFormatted : (deliveryAddressFormatted || null),
-          delivery_street: isGift ? giftStreet : deliveryStreet,
-          delivery_street_line2: isGift ? `${giftBuilding || ''}${giftApartment ? ' ' + giftApartment : ''}`.trim() || null : `${deliveryBuilding || ''}${deliveryApartment ? ' ' + deliveryApartment : ''}`.trim() || null,
-          delivery_city: isGift ? giftCity : deliveryCity,
-          delivery_postal_code: isGift ? giftPostalCode : deliveryPostalCode,
-          delivery_country: isGift
-            ? (giftState ? `${giftState}, ${giftCountry}` : giftCountry)
-            : (deliveryState ? `${deliveryState}, ${deliveryCountry}` : deliveryCountry),
-          delivery_instructions: deliveryInstructions || null,
-          notes: notes || null,
-          status: 'pending',
-          payment_status: 'pending',
-          tracking_status: 'pending',
-          is_gift: isGift,
-          gift_recipient_name: isGift ? giftRecipientName : null,
-          gift_recipient_email: isGift ? giftRecipientEmail : null,
-          gift_message: isGift ? giftMessage : null,
-          gift_recipient_address: isGift ? giftRecipientAddressFormatted : null,
-        })
-        .select()
-        .maybeSingle();
+      // Nothing is written to the database yet. The order is inserted when the
+      // buyer presses Pay (see createOrder), so closing this step without
+      // paying never leaves an order behind.
+      orderPayloadRef.current = {
+        client_id: user.id,
+        picker_id: pickerProfile.user_id,
+        listing_id: listing.id,
+        quantity,
+        total_price: totalPrice,
+        shipping_cost: shippingTotal,
+        shipping_carrier: selectedShippingRate.carrier,
+        shipping_service: selectedShippingRate.name,
+        estimated_delivery_days: selectedShippingRate.max_days > 0
+          ? `${selectedShippingRate.min_days}-${selectedShippingRate.max_days} business days`
+          : null,
+        delivery_address: isGift ? giftRecipientAddressFormatted : (deliveryAddressFormatted || null),
+        delivery_street: isGift ? giftStreet : deliveryStreet,
+        delivery_street_line2: isGift ? `${giftBuilding || ''}${giftApartment ? ' ' + giftApartment : ''}`.trim() || null : `${deliveryBuilding || ''}${deliveryApartment ? ' ' + deliveryApartment : ''}`.trim() || null,
+        delivery_city: isGift ? giftCity : deliveryCity,
+        delivery_postal_code: isGift ? giftPostalCode : deliveryPostalCode,
+        delivery_country: isGift
+          ? (giftState ? `${giftState}, ${giftCountry}` : giftCountry)
+          : (deliveryState ? `${deliveryState}, ${deliveryCountry}` : deliveryCountry),
+        delivery_instructions: deliveryInstructions || null,
+        notes: notes || null,
+        status: 'pending',
+        payment_status: 'pending',
+        tracking_status: 'pending',
+        is_gift: isGift,
+        gift_recipient_name: isGift ? giftRecipientName : null,
+        gift_recipient_email: isGift ? giftRecipientEmail : null,
+        gift_message: isGift ? giftMessage : null,
+        gift_recipient_address: isGift ? giftRecipientAddressFormatted : null,
+      };
 
-      if (insertError) throw insertError;
-      if (!data) throw new Error('Order creation returned no data');
-
-      await supabase
-        .from('order_status_history')
-        .insert({
-          order_id: data.id,
-          status: 'pending',
-          notes: 'Order created',
-          changed_by: user.id,
-        });
-
-      setCreatedOrderId(data.id);
       setShowPayment(true);
     } catch (err: any) {
-      setError(err.message || 'Failed to create order. Please try again.');
+      setError(err.message || 'Failed to prepare checkout. Please try again.');
     } finally {
       setSubmitting(false);
       setLoadingRates(false);
     }
   };
 
-  const handlePaymentSuccess = async () => {
-    if (createdOrderId) {
-      const { data } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('id', createdOrderId)
-        .single();
+  const createOrder = async (): Promise<string> => {
+    const payload = orderPayloadRef.current;
+    if (!payload) throw new Error('Checkout expired. Please close this window and try again.');
 
-      if (data) {
-        onOrderCreated(data);
-      }
+    const { data, error: insertError } = await supabase
+      .from('orders')
+      .insert(payload)
+      .select()
+      .maybeSingle();
+
+    if (insertError) throw insertError;
+    if (!data) throw new Error('Order creation returned no data');
+
+    await supabase
+      .from('order_status_history')
+      .insert({
+        order_id: data.id,
+        status: 'pending',
+        notes: 'Order created',
+        changed_by: user?.id,
+      });
+
+    return data.id;
+  };
+
+  const handlePaymentSuccess = async (orderId: string) => {
+    const { data } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', orderId)
+      .single();
+
+    if (data) {
+      onOrderCreated(data);
     }
+    onClose();
+  };
+
+  const handlePaymentCancel = async () => {
+    const { remaining } = await guard.discard();
+    orderPayloadRef.current = null;
+    setShowPayment(false);
+    if (remaining.length > 0) {
+      setError('The payment was cancelled, but an unpaid order could not be removed automatically. You can cancel it from your Orders page.');
+    }
+  };
+
+  const handleClose = async () => {
+    await guard.discard();
     onClose();
   };
 
@@ -227,7 +254,7 @@ export function OrderCheckoutModal({ listing, onClose, onOrderCreated }: OrderCh
         <div className="sticky top-0 bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
           <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">Complete Your Order</h2>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
           >
             <X className="w-5 h-5" />
@@ -616,19 +643,17 @@ export function OrderCheckoutModal({ listing, onClose, onOrderCreated }: OrderCh
             />
           </div>
 
-          {showPayment && createdOrderId ? (
+          {showPayment ? (
             <div className="bg-gray-50 rounded-xl p-6">
               <h3 className="text-lg font-bold text-gray-900 mb-4">Complete Payment</h3>
               <StripeCheckoutForm
-                orderId={createdOrderId}
                 amount={totalPrice}
                 productAmount={itemTotal}
                 shippingAmount={shippingTotal}
+                guard={guard}
+                createOrder={createOrder}
                 onSuccess={handlePaymentSuccess}
-                onCancel={() => {
-                  setShowPayment(false);
-                  setCreatedOrderId(null);
-                }}
+                onCancel={handlePaymentCancel}
               />
             </div>
           ) : null}
@@ -701,7 +726,7 @@ export function OrderCheckoutModal({ listing, onClose, onOrderCreated }: OrderCh
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleClose}
                 className="w-full sm:flex-1 px-6 py-3 border border-gray-300 rounded-lg text-sm sm:text-base font-medium text-gray-700 hover:bg-gray-50 transition-colors order-2 sm:order-1"
               >
                 Cancel
@@ -711,7 +736,7 @@ export function OrderCheckoutModal({ listing, onClose, onOrderCreated }: OrderCh
                 disabled={submitting}
                 className="w-full sm:flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg text-sm sm:text-base font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed order-1 sm:order-2"
               >
-                {loadingRates ? 'Calculating Shipping...' : submitting ? 'Creating Order...' : selectedShippingRate ? 'Place Order' : 'Get Shipping Rates'}
+                {loadingRates ? 'Calculating Shipping...' : submitting ? 'Preparing Payment...' : selectedShippingRate ? 'Continue to Payment' : 'Get Shipping Rates'}
               </button>
             </div>
           )}

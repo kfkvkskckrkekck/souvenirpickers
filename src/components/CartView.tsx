@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ShoppingCart, Trash2, Plus, Minus, Loader, CheckCircle, ArrowRight, Lock, MapPin, Package, AlertCircle, ChevronDown } from 'lucide-react';
 import { FunctionsHttpError } from '@supabase/supabase-js';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, CartItem, Listing } from '../lib/supabase';
 import { COUNTRIES, toCountryCode } from '../lib/countries';
-import { CartMultiOrderPayment } from './CartMultiOrderPayment';
+import { CartMultiOrderPayment, type CartDraft } from './CartMultiOrderPayment';
+import { useUnpaidOrderGuard } from '../lib/orderDrafts';
 import SouvenirLoader from './SouvenirLoader';
 
 type CartItemWithListing = CartItem & {
@@ -24,14 +25,9 @@ type ShippingRate = {
   price: number;
 };
 
-type PendingPayment = {
-  orderId: string;
-  amount: number;
-  title: string;
-};
-
 export function CartView({ onViewChange }: CartViewProps = {}) {
   const { user, profile } = useAuth();
+  const guard = useUnpaidOrderGuard(user?.id);
   const [cartItems, setCartItems] = useState<CartItemWithListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
@@ -53,8 +49,12 @@ export function CartView({ onViewChange }: CartViewProps = {}) {
   const [selectedRateByItem, setSelectedRateByItem] = useState<Record<string, ShippingRate>>({});
 
   const [inPaymentFlow, setInPaymentFlow] = useState(false);
-  const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>([]);
+  const [checkoutDrafts, setCheckoutDrafts] = useState<CartDraft[]>([]);
   const [openRateItemId, setOpenRateItemId] = useState<string | null>(null);
+  // Order rows are only inserted at the moment of payment, so the data for
+  // each one is held here (keyed by cart item id) until then.
+  const orderPayloadsRef = useRef<Record<string, Record<string, unknown>>>({});
+  const paidCountRef = useRef(0);
 
   useEffect(() => {
     if (user) {
@@ -202,7 +202,11 @@ export function CartView({ onViewChange }: CartViewProps = {}) {
       addressParts.push(deliveryCity, deliveryPostalCode, deliveryCountry);
       const fullAddress = addressParts.filter(p => p.trim()).join(', ');
 
-      const createdOrders: PendingPayment[] = [];
+      // Nothing is written to the database here. Orders are inserted one by one
+      // at the moment of payment (see createOrderRecord) and the cart items are
+      // only removed once their order has actually been paid.
+      const drafts: CartDraft[] = [];
+      const payloads: Record<string, Record<string, unknown>> = {};
 
       for (const item of cartItems) {
         const rate = selectedRateByItem[item.id];
@@ -217,10 +221,11 @@ export function CartView({ onViewChange }: CartViewProps = {}) {
         if (pickerError) throw pickerError;
         if (!pickerProfile) throw new Error('Picker not found');
 
+        const productTotal = item.listing.price * item.quantity;
         const shippingTotal = rate.price;
-        const orderTotal = item.listing.price * item.quantity + shippingTotal;
+        const orderTotal = productTotal + shippingTotal;
 
-        const { data, error: orderError } = await supabase.from('orders').insert({
+        payloads[item.id] = {
           client_id: user?.id,
           picker_id: pickerProfile.user_id,
           listing_id: item.listing_id,
@@ -242,52 +247,79 @@ export function CartView({ onViewChange }: CartViewProps = {}) {
           status: 'pending',
           payment_status: 'pending',
           tracking_status: 'pending',
-        }).select().maybeSingle();
+        };
 
-        if (orderError) throw orderError;
-        if (!data) throw new Error('Order creation returned no data');
-
-        await supabase.from('order_status_history').insert({
-          order_id: data.id,
-          status: 'pending',
-          notes: 'Order created',
-          changed_by: user?.id,
+        drafts.push({
+          key: item.id,
+          title: item.listing.title,
+          amount: orderTotal,
+          productAmount: productTotal,
+          shippingAmount: shippingTotal,
         });
-
-        createdOrders.push({ orderId: data.id, amount: orderTotal, title: item.listing.title });
       }
 
-      const { error: deleteError } = await supabase
-        .from('cart_items')
-        .delete()
-        .eq('client_id', user?.id);
-
-      if (deleteError) throw deleteError;
-
-      setPendingPayments(createdOrders);
+      orderPayloadsRef.current = payloads;
+      paidCountRef.current = 0;
+      setCheckoutDrafts(drafts);
       setInPaymentFlow(true);
     } catch (error: unknown) {
-      setMessage('Error creating orders: ' + (error instanceof Error ? error.message : 'Please try again.'));
+      setMessage('Error preparing checkout: ' + (error instanceof Error ? error.message : 'Please try again.'));
       setTimeout(() => setMessage(''), 5000);
     } finally {
       setCheckoutLoading(false);
     }
   };
 
-  const handleAllOrdersPaid = () => {
+  const createOrderRecord = async (draft: CartDraft): Promise<string> => {
+    const payload = orderPayloadsRef.current[draft.key];
+    if (!payload) throw new Error('Checkout expired. Please go back to your cart and try again.');
+
+    const { data, error } = await supabase.from('orders').insert(payload).select().maybeSingle();
+
+    if (error) throw error;
+    if (!data) throw new Error('Order creation returned no data');
+
+    await supabase.from('order_status_history').insert({
+      order_id: data.id,
+      status: 'pending',
+      notes: 'Order created',
+      changed_by: user?.id,
+    });
+
+    return data.id;
+  };
+
+  const handleOrderPaid = async (draft: CartDraft) => {
+    paidCountRef.current += 1;
+    await supabase.from('cart_items').delete().eq('id', draft.key);
+  };
+
+  const exitPaymentFlow = () => {
     setInPaymentFlow(false);
-    setPendingPayments([]);
+    setCheckoutDrafts([]);
+    orderPayloadsRef.current = {};
     resetCheckoutState();
-    setOrderSuccess(true);
     loadCart();
   };
 
-  const handlePaymentFlowCancel = () => {
-    setInPaymentFlow(false);
-    setPendingPayments([]);
-    resetCheckoutState();
-    setMessage('Checkout stopped before payment finished. Any orders already created were saved as pending but are not yet paid.');
-    loadCart();
+  const handleAllOrdersPaid = () => {
+    exitPaymentFlow();
+    setOrderSuccess(true);
+  };
+
+  const handlePaymentFlowCancel = async () => {
+    const { remaining } = await guard.discard();
+    const paid = paidCountRef.current;
+    const total = checkoutDrafts.length;
+    exitPaymentFlow();
+
+    if (remaining.length > 0) {
+      setMessage('Error: Payment was cancelled, but an unpaid order could not be removed automatically. You can cancel it from your Orders page.');
+    } else if (paid > 0) {
+      setMessage(`${paid} of ${total} orders were paid and placed. The rest were not placed and are still in your cart.`);
+    } else {
+      setMessage('Payment cancelled — no order was placed. Your items are still in your cart.');
+    }
   };
 
 
@@ -303,13 +335,16 @@ export function CartView({ onViewChange }: CartViewProps = {}) {
     return calculateSubtotal() + (allRatesSelected ? calculateShippingTotal() : 0);
   };
 
-  if (inPaymentFlow && pendingPayments.length > 0) {
+  if (inPaymentFlow && checkoutDrafts.length > 0) {
     return (
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-xl font-bold text-gray-900 tracking-tight mb-6">Complete Payment</h2>
           <CartMultiOrderPayment
-            payments={pendingPayments}
+            drafts={checkoutDrafts}
+            guard={guard}
+            createOrder={createOrderRecord}
+            onOrderPaid={handleOrderPaid}
             onAllPaid={handleAllOrdersPaid}
             onCancel={handlePaymentFlowCancel}
           />
@@ -669,7 +704,7 @@ export function CartView({ onViewChange }: CartViewProps = {}) {
                     ) : checkoutLoading ? (
                       <>
                         <Loader className="w-4 h-4 animate-spin" />
-                        Creating Orders...
+                        Preparing Checkout...
                       </>
                     ) : !ratesFetched ? (
                       <>
@@ -681,7 +716,7 @@ export function CartView({ onViewChange }: CartViewProps = {}) {
                     ) : (
                       <>
                         <CheckCircle className="w-4 h-4" />
-                        Place Order & Pay
+                        Continue to Payment
                       </>
                     )}
                   </button>

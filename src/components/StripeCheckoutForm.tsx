@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Loader, AlertCircle, CheckCircle, CreditCard, Lock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { createPaymentIntentForOrder } from '../lib/payments';
+import type { UnpaidOrderGuard } from '../lib/orderDrafts';
 
 declare global {
   interface Window {
@@ -10,21 +11,22 @@ declare global {
 }
 
 type StripeCheckoutFormProps = {
-  orderId: string;
   amount: number;
   productAmount?: number;
   shippingAmount?: number;
-  onSuccess: () => void;
-  onCancel: () => void;
+  guard: UnpaidOrderGuard;
+  createOrder: () => Promise<string>;
+  onSuccess: (orderId: string) => void;
+  onCancel: () => void | Promise<void>;
 };
 
-export function StripeCheckoutForm({ orderId, amount, productAmount, shippingAmount, onSuccess, onCancel }: StripeCheckoutFormProps) {
+export function StripeCheckoutForm({ amount, productAmount, shippingAmount, guard, createOrder, onSuccess, onCancel }: StripeCheckoutFormProps) {
   const { user } = useAuth();
   const [stripe, setStripe] = useState<any>(null);
   const [cardElement, setCardElement] = useState<any>(null);
-  const [clientSecret, setClientSecret] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [cardReady, setCardReady] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const initialized = useRef(false);
@@ -33,7 +35,6 @@ export function StripeCheckoutForm({ orderId, amount, productAmount, shippingAmo
     if (initialized.current) return;
     initialized.current = true;
     initializeStripe();
-    createPaymentIntent();
   }, []);
 
   const initializeStripe = () => {
@@ -76,6 +77,7 @@ export function StripeCheckoutForm({ orderId, amount, productAmount, shippingAmo
       setCardElement(card);
 
       card.on('change', (event: any) => {
+        setCardReady(event.complete === true);
         if (event.error) {
           setError(event.error.message);
         } else {
@@ -88,60 +90,82 @@ export function StripeCheckoutForm({ orderId, amount, productAmount, shippingAmo
     }
   };
 
-  const createPaymentIntent = async () => {
-    setLoading(true);
+  const handleSubmit = async () => {
+    if (!stripe || !cardElement || processing || cancelling) {
+      return;
+    }
+
+    setProcessing(true);
+    guard.setProcessing(true);
+    setError('');
+
     try {
-      const { clientSecret: secret } = await createPaymentIntentForOrder({
+      // The order row only comes into existence here, at the moment of
+      // payment, and every attempt gets its own (see the catch below).
+      const orderId = await createOrder();
+      guard.trackCreated(orderId);
+
+      const { clientSecret } = await createPaymentIntentForOrder({
         orderId,
         amount,
         productAmount,
         shippingAmount,
       });
-      setClientSecret(secret);
-    } catch (err: any) {
 
-      setError(err.message || 'Failed to initialize payment');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!stripe || !cardElement || !clientSecret) {
-      return;
-    }
-
-    setProcessing(true);
-    setError('');
-
-    try {
-      const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(
-        clientSecret,
-        {
+      let result;
+      try {
+        result = await stripe.confirmCardPayment(clientSecret, {
           payment_method: {
             card: cardElement,
             billing_details: {
               email: user?.email,
             },
           },
-        }
-      );
+        });
+      } catch (confirmThrown) {
+        guard.markOutcomeUnknown(orderId);
+        throw confirmThrown;
+      }
+
+      const { error: stripeError, paymentIntent } = result;
 
       if (stripeError) {
+        if (stripeError.type === 'api_connection_error') guard.markOutcomeUnknown(orderId);
         throw new Error(stripeError.message);
       }
 
-      if (paymentIntent.status === 'succeeded') {
+      if (paymentIntent?.status === 'succeeded') {
+        guard.markPaid(orderId);
         setSuccess(true);
         setTimeout(() => {
-          onSuccess();
+          onSuccess(orderId);
         }, 2000);
+      } else {
+        if (paymentIntent && (paymentIntent.status === 'processing' || paymentIntent.status === 'requires_capture')) {
+          guard.markOutcomeUnknown(orderId);
+        }
+        throw new Error('Payment was not completed. Please try again.');
       }
     } catch (err: any) {
-
+      // This attempt failed, so its unpaid order must not linger as a placed
+      // order. A retry creates a fresh one. (An order that is paid, or whose
+      // outcome is unknown, is protected and never removed.)
+      guard.setProcessing(false);
+      await guard.discard();
       setError(err.message || 'Payment failed. Please try again.');
     } finally {
       setProcessing(false);
+      guard.setProcessing(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (processing || cancelling) return;
+    setCancelling(true);
+    try {
+      await onCancel();
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -164,7 +188,7 @@ export function StripeCheckoutForm({ orderId, amount, productAmount, shippingAmo
           <div>
             <p className="font-semibold text-blue-900 mb-1">Secure Payment</p>
             <p className="text-sm text-blue-700">
-              Your payment is processed securely through Stripe. Your card details are encrypted and never stored on our servers.
+              Your payment is processed securely through Stripe. Your card details are encrypted and never stored on our servers. Your order is only placed once payment succeeds.
             </p>
           </div>
         </div>
@@ -179,12 +203,6 @@ export function StripeCheckoutForm({ orderId, amount, productAmount, shippingAmo
           id="card-element-checkout"
           className="p-4 border-2 border-gray-300 rounded-lg bg-white min-h-[44px]"
         />
-        {loading && (
-          <p className="mt-2 text-xs text-gray-500 flex items-center gap-1.5">
-            <Loader className="w-3 h-3 animate-spin" />
-            Setting up secure payment...
-          </p>
-        )}
       </div>
 
       {error && (
@@ -210,16 +228,16 @@ export function StripeCheckoutForm({ orderId, amount, productAmount, shippingAmo
       <div className="flex gap-3">
         <button
           type="button"
-          onClick={onCancel}
-          disabled={processing}
+          onClick={handleCancel}
+          disabled={processing || cancelling}
           className="flex-1 px-6 py-4 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-semibold disabled:opacity-50"
         >
-          Cancel
+          {cancelling ? 'Cancelling...' : 'Cancel'}
         </button>
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={processing || !stripe || !clientSecret || !!error}
+          disabled={processing || cancelling || !stripe || !cardReady}
           className="flex-1 bg-gradient-to-r from-blue-600 to-green-600 text-white py-4 px-6 rounded-lg font-semibold hover:from-blue-700 hover:to-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {processing ? (

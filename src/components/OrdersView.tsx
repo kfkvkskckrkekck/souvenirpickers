@@ -9,6 +9,7 @@ import { uploadPickupVideo } from '../lib/storage';
 import OrderConfirmation from './OrderConfirmation';
 import { CartPaymentModal } from './CartPaymentModal';
 import { getStatusDisplay, getStatusColor, getAvailableActions, getFilterOptions, requiresCollectorAction, requiresPickerAction, type OrderStatus } from '../lib/orderStatus';
+import { discardUnpaidOrders } from '../lib/orderDrafts';
 import SouvenirLoader from './SouvenirLoader';
 
 type EscrowRecord = {
@@ -812,12 +813,13 @@ export function OrdersView({ onViewChange, initialOrderId }: OrdersViewProps = {
                       )
                     )}
 
-                    {profile?.user_type === 'client' && order.status === 'unpaid' && order.payment_status === 'pending' && (
+                    {profile?.user_type === 'client' && (order.status === 'unpaid' || order.status === 'pending') && order.payment_status === 'pending' && (
                       <button
                         onClick={async () => {
                           if (confirm('Are you sure you want to cancel this order?')) {
                             try {
-                              await supabase.from('orders').delete().eq('id', order.id);
+                              const removed = await discardUnpaidOrders([order.id], profile.id);
+                              if (removed.length === 0) throw new Error('not removed');
                               await loadOrders();
                             } catch (error) {
                               alert('Failed to cancel order');
