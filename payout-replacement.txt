@@ -1,3 +1,0 @@
-              <div className="border-t mt-6 pt-6">
-                <PayoutSetup />
-              </div>
